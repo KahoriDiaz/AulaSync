@@ -1,0 +1,25 @@
+# Entorno y credenciales
+.env
+.venv/
+entorno/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Documentos y datos personales (nunca a git)
+muestras/
+almacen/
+capturas/
+tesseract/
+docs/*.docx
+docs/*.pdf
+
+# Empaquetado
+build/
+dist/
+*.spec
+
+# Sistema
+Thumbs.db
+desktop.ini
