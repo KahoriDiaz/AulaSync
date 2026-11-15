@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import re
 
+from core.formatos import sin_tildes
 from ocr.dni import Campo, LineaOCR, _buscar, _texto_completo
 from ocr.normalizacion import (
     limpiar,
@@ -122,7 +123,7 @@ def extraer_constancia(
     if nombre_ie:
         nombre = re.sub(r"CODIGO MODULAR.*$", "", nombre_ie[0], flags=re.IGNORECASE)
         nombre = limpiar(nombre)
-        if nombre:
+        if nombre and not re.search(r"SIAGIE|SISTEMA DE|INFORMACION", sin_tildes(nombre).upper()):
             campos["INSTITUCION_EDUCATIVA.NombreIE"] = (nombre[:50], nombre_ie[1], origen)
 
     tipo_ie = normalizar_tipo_ie(texto_completo)

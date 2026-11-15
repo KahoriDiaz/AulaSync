@@ -102,16 +102,25 @@ def transaccion() -> Iterator[mysql.connector.cursor.MySQLCursor]:
         cnx.close()
 
 
+def _llamar(cursor: Any, nombre: str, parametros: Sequence[Any]) -> None:
+    """Ejecuta un procedimiento con parámetros vinculados (sin callproc obsoleto)."""
+    marcadores = ", ".join(["%s"] * len(parametros))
+    cursor.execute(f"CALL `{nombre}`({marcadores})", tuple(parametros))
+
+
 def _resultados(cursor: Any, nombre: str, parametros: Iterable[Any]) -> list[list[dict[str, Any]]]:
-    cursor.callproc(nombre, tuple(parametros))
+    _llamar(cursor, nombre, tuple(parametros))
     resultados: list[list[dict[str, Any]]] = []
-    for resultado in cursor.stored_results():
-        filas = resultado.fetchall()
-        if filas and isinstance(filas[0], dict):
-            resultados.append(list(filas))
-        else:
-            columnas = [d[0] for d in resultado.description or []]
-            resultados.append([dict(zip(columnas, fila)) for fila in filas])
+    while True:
+        if cursor.with_rows:
+            filas = cursor.fetchall()
+            if filas and isinstance(filas[0], dict):
+                resultados.append(list(filas))
+            else:
+                columnas = [d[0] for d in cursor.description or []]
+                resultados.append([dict(zip(columnas, fila)) for fila in filas])
+        if not cursor.nextset():
+            break
     return resultados
 
 
@@ -124,8 +133,6 @@ def llamar_procedimiento(
     try:
         resultados = _resultados(cursor, nombre, parametros)
         cnx.commit()
-        while cursor.nextset():
-            pass
         return resultados
     except Exception as exc:
         cnx.rollback()
@@ -142,9 +149,23 @@ def llamar_procedimiento_en(
 ) -> list[list[dict[str, Any]]]:
     """Llama a un procedimiento usando un cursor de una transacción existente."""
     try:
-        resultados = _resultados(cursor, nombre, parametros)
-        while cursor.nextset():
-            pass
-        return resultados
+        return _resultados(cursor, nombre, parametros)
+    except Exception as exc:
+        raise _envolver(exc) from exc
+
+
+def ejecutar_procedimiento_en(
+    cursor: mysql.connector.cursor.MySQLCursor,
+    nombre: str,
+    parametros: Sequence[Any] = (),
+) -> None:
+    """Ejecuta un procedimiento en una transacción y descarta sus resultados."""
+    try:
+        _llamar(cursor, nombre, tuple(parametros))
+        while True:
+            if cursor.with_rows:
+                cursor.fetchall()
+            if not cursor.nextset():
+                break
     except Exception as exc:
         raise _envolver(exc) from exc

@@ -6,7 +6,7 @@ from typing import Any
 
 from core import seguridad
 from core.almacen import Almacen
-from core.db import transaccion
+from core.db import ejecutar_procedimiento_en, transaccion
 from core.errores import ErrorValidacion
 from core.formatos import normalizar_nivel, validar_fecha_no_futura, validar_grado
 
@@ -15,13 +15,6 @@ from servicios import constancias, contactos, estudiantes, hermandad, institucio
 
 def _almacen() -> Almacen:
     return Almacen()
-
-
-def _absorber(cursor: Any) -> None:
-    for resultado in cursor.stored_results():
-        resultado.fetchall()
-    while cursor.nextset():
-        pass
 
 
 def _padres_solicitud(datos: dict[str, Any]) -> list[str]:
@@ -196,14 +189,14 @@ def aprobar(id_solicitud: str, observacion: str = "") -> dict[str, Any]:
                 "VALUES (%s, %s)",
                 (dni_estudiante, nivel_hermano),
             )
-        cursor.callproc(
+        ejecutar_procedimiento_en(
+            cursor,
             "sp_registrar_matricula",
             (
                 dni_estudiante, anio, nivel, grado, seccion, padre_dni,
                 sesion.dni, lugar, fecha_matricula,
             ),
         )
-        _absorber(cursor)
 
     solicitud["estado"] = "Aprobada"
     solicitud["fecha_resolucion"] = date.today().isoformat()

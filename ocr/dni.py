@@ -86,6 +86,67 @@ def _limpiar_nombre(valor: str) -> str:
     return mayuscula_inicial(limpiar(limpio))
 
 
+_MRZ_CARACTERES = re.compile(r"^[A-Z0-9<]+$")
+
+
+def _lineas_mrz(lineas: list[LineaOCR]) -> list[str]:
+    """Devuelve candidatas a zona de lectura mecánica (MRZ) en orden de aparición."""
+    candidatas: list[str] = []
+    for texto, _ in lineas:
+        limpio = re.sub(r"\s+", "", texto.upper())
+        if 28 <= len(limpio) <= 44 and limpio.count("<") >= 3 and _MRZ_CARACTERES.match(limpio):
+            candidatas.append(limpio)
+    return candidatas
+
+
+def _mrz(lineas: list[LineaOCR]) -> dict[str, Campo]:
+    """Extrae DNI, fecha de nacimiento, sexo y nombres desde la MRZ del DNI (TD1)."""
+    candidatas = _lineas_mrz(lineas)
+    if not candidatas:
+        return {}
+    resultado: dict[str, Campo] = {}
+
+    for linea in candidatas:
+        coincidencia = re.search(r"PER([0-9<]{8,9})", linea)
+        if not coincidencia:
+            continue
+        numero = re.sub(r"[^0-9]", "", coincidencia.group(1))
+        if len(numero) == 8:
+            resultado["DNI"] = (numero, 95, "OCR (MRZ)")
+            break
+
+    for linea in candidatas:
+        coincidencia = re.match(r"(\d{2})(\d{2})(\d{2})\d*([MF])[A-Z<]?(\d{6})", linea)
+        if not coincidencia:
+            continue
+        anio, mes, dia = (int(g) for g in coincidencia.groups()[:3])
+        anio += 2000 if anio < 30 else 1900
+        try:
+            from datetime import date
+
+            fecha = date(anio, mes, dia).isoformat()
+        except ValueError:
+            fecha = f"{anio:04d}-{mes:02d}-{dia:02d}"
+        resultado["FechaNacimiento"] = (fecha, 90, "OCR (MRZ)")
+        sexo = coincidencia.group(4)
+        if sexo in ("M", "F"):
+            resultado["Sexo"] = (sexo, 90, "OCR (MRZ)")
+        break
+
+    for linea in candidatas:
+        if re.search(r"\d", linea) or "<" not in linea:
+            continue
+        partes = linea.split("<<")
+        apellidos = partes[0].replace("<", " ").strip()
+        nombres = partes[1].replace("<", " ").strip() if len(partes) > 1 else ""
+        if apellidos:
+            resultado["ApellidoPaterno"] = (_limpiar_nombre(apellidos), 85, "OCR (MRZ)")
+        if nombres:
+            resultado["Nombres"] = (_limpiar_nombre(nombres), 85, "OCR (MRZ)")
+        break
+    return resultado
+
+
 def _campo(valor: str | None, confianza: int, origen: str) -> Campo | None:
     if not valor:
         return None
@@ -195,5 +256,11 @@ def extraer_dni(
             resultado["ESTUDIANTE.DepartamentoNacimiento"] = (
                 mayuscula_inicial(departamento_nac[0]), departamento_nac[1], origen
             )
+
+    mrz = _mrz(lineas)
+    for sufijo, valor in mrz.items():
+        resultado.setdefault(f"{tabla}.{sufijo}", valor)
+    if "DNI" in mrz:
+        resultado[f"{tabla}.DNI"] = mrz["DNI"]
 
     return {clave: valor for clave, valor in resultado.items() if valor and valor[0]}

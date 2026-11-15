@@ -115,6 +115,22 @@ def test_extraer_dni_sin_etiqueta_usa_regex():
     assert campos["ESTUDIANTE.DNI"][0] == "70000042"
 
 
+LINEAS_DNI_MRZ = [
+    ("I<PER71347545<2<<<<<CCECLL<<<", 21),
+    ("0602149FF1404177PER<<<<<<<<<<<2", 53),
+    ("BUSTAMANTE<<ANA<PAULA<<<<<<<<<", 83),
+]
+
+
+def test_extraer_dni_mrz():
+    campos = extraer_dni(LINEAS_DNI_MRZ, tabla="ESTUDIANTE")
+    assert campos["ESTUDIANTE.DNI"][0] == "71347545"
+    assert campos["ESTUDIANTE.ApellidoPaterno"][0] == "Bustamante"
+    assert campos["ESTUDIANTE.Nombres"][0] == "Ana Paula"
+    assert campos["ESTUDIANTE.FechaNacimiento"][0] == "2006-02-14"
+    assert campos["ESTUDIANTE.Sexo"][0] == "F"
+
+
 def test_extraer_constancia_campos():
     campos, _ = extraer_constancia(LINEAS_CONSTANCIA)
     assert campos["CONSTANCIA_LOGROS.CodigoVirtual"][0] == "D4E5F6A7"
