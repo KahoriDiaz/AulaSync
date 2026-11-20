@@ -1,14 +1,14 @@
-# Manual de usuario — Registro de Matrícula
+# Manual de usuario — AulaSync
 
 ## 1. Requisitos
 - MySQL 8.0 instalado y en ejecución. El ejecutable **no incluye** MySQL.
-- Windows 10/11. No hace falta instalar Python para usar `MatriculaApp.exe`.
+- Windows 10/11. No hace falta instalar Python para usar `AulaSync.exe`.
 - Opcional: Tesseract con idioma `spa` para el autocompletado OCR. Si falta, los datos se escriben a mano.
 - Los campos de DNI solo aceptan números y como máximo 8 dígitos; no permite escribir ni pegar más.
 
 ## 2. Primera ejecución
 1. Descomprimir `Entrega5_GrupoXX.zip`.
-2. Entrar en `MatriculaApp/` y ejecutar `MatriculaApp.exe`.
+2. Entrar en `AulaSync/` y ejecutar `AulaSync.exe`.
 3. Aparece el **asistente de conexión**:
    - Probar la conexión con el usuario administrador de MySQL.
    - Presionar **Crear base de datos y cargar datos de prueba**.

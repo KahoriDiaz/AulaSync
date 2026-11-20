@@ -31,7 +31,10 @@ def _limitar_dnis(campos: list[str], parametros: list[str]) -> list[str]:
 class VentanaPrincipal(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Registro de Matrícula")
+        sesion = auth.sesion_actual()
+        rol = sesion.rol if sesion else ""
+        titulo = "Bandeja de solicitudes" if rol == "Secretaria" else "Mis solicitudes"
+        self.title(f"AulaSync - {titulo}")
         self.geometry("1000x600")
         self._construir_menu()
         self._construir_contenido()
@@ -346,7 +349,7 @@ class VentanaPrincipal(tk.Tk):
     def _ayuda(self):
         messagebox.showinfo(
             "Ayuda",
-            "Registro de Matrícula - Entrega 5\n"
+            "AulaSync - Entrega 5\n"
             "Aplicativo de escritorio sin frameworks (tkinter + mysql-connector).\n"
             "Usuarios demo: secretaria / secretaria123  |  padre_demo / padre123",
         )

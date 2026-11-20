@@ -27,7 +27,7 @@ class DialogoHijo(tk.Toplevel):
 
     def __init__(self, parent, hijo: dict | None = None):
         super().__init__(parent)
-        self.title("Datos del hijo")
+        self.title("AulaSync - Datos del hijo")
         self.resizable(False, False)
         self.transient(parent)
         self.grab_set()
@@ -140,7 +140,7 @@ class SolicitarVacante(tk.Toplevel):
 
     def __init__(self, parent, id_solicitud: str | None = None, al_cerrar=None):
         super().__init__(parent)
-        self.title("Solicitar vacante")
+        self.title("AulaSync - Solicitar vacante")
         self.geometry("900x520")
         self.transient(parent)
         self.grab_set()

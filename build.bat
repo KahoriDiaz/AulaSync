@@ -2,7 +2,7 @@
 setlocal EnableExtensions
 cd /d "%~dp0"
 
-echo === Registro de Matricula - generando MatriculaApp.exe ===
+echo === AulaSync - generando AulaSync.exe ===
 
 python -m PyInstaller --version >nul 2>nul
 if errorlevel 1 (
@@ -11,11 +11,11 @@ if errorlevel 1 (
     exit /b 1
 )
 
-if exist "dist\MatriculaApp" rmdir /s /q "dist\MatriculaApp"
-if exist "build\MatriculaApp" rmdir /s /q "build\MatriculaApp"
-if exist "MatriculaApp.spec" del /q "MatriculaApp.spec"
+if exist "dist\AulaSync" rmdir /s /q "dist\AulaSync"
+if exist "build\AulaSync" rmdir /s /q "build\AulaSync"
+if exist "AulaSync.spec" del /q "AulaSync.spec"
 
-set "OPTS=--noconfirm --onedir --windowed --name MatriculaApp --add-data "sql;sql" --collect-submodules mysql.connector --hidden-import mysql.connector.plugins.caching_sha2_password --hidden-import mysql.connector.plugins.mysql_native_password --hidden-import mysql.connector.locales.eng"
+set "OPTS=--noconfirm --onedir --windowed --name AulaSync --add-data "sql;sql" --collect-submodules mysql.connector --hidden-import mysql.connector.plugins.caching_sha2_password --hidden-import mysql.connector.plugins.mysql_native_password --hidden-import mysql.connector.locales.eng"
 
 set "TESS="
 if exist "tesseract\tessdata\spa.traineddata" set TESS=--add-data "tesseract;tesseract"
@@ -27,16 +27,16 @@ if errorlevel 1 (
 )
 
 :: Archivos configurables y bandeja de solicitudes: FUERA del ejecutable.
-copy /y "config.ini.example" "dist\MatriculaApp\config.ini.example" >nul
-copy /y "LEEME.txt" "dist\MatriculaApp\LEEME.txt" >nul
+copy /y "config.ini.example" "dist\AulaSync\config.ini.example" >nul
+copy /y "LEEME.txt" "dist\AulaSync\LEEME.txt" >nul
 for %%D in (pendientes aprobadas rechazadas) do (
-    if not exist "dist\MatriculaApp\data\solicitudes\%%D" mkdir "dist\MatriculaApp\data\solicitudes\%%D"
+    if not exist "dist\AulaSync\data\solicitudes\%%D" mkdir "dist\AulaSync\data\solicitudes\%%D"
     rem Los ejemplos viven fuera de la bandeja real para no distribuir datos del desarrollador.
-    if exist "datos_demo\solicitudes\%%D\*.json" xcopy /e /i /y "datos_demo\solicitudes\%%D" "dist\MatriculaApp\data\solicitudes\%%D" >nul
+    if exist "datos_demo\solicitudes\%%D\*.json" xcopy /e /i /y "datos_demo\solicitudes\%%D" "dist\AulaSync\data\solicitudes\%%D" >nul
 )
-if not exist "dist\MatriculaApp\data\perfiles" mkdir "dist\MatriculaApp\data\perfiles"
+if not exist "dist\AulaSync\data\perfiles" mkdir "dist\AulaSync\data\perfiles"
 
 echo.
-echo Listo: dist\MatriculaApp\MatriculaApp.exe
+echo Listo: dist\AulaSync\AulaSync.exe
 echo Ahora ejecute empaquetar.bat para generar el ZIP de entrega.
 endlocal

@@ -19,7 +19,7 @@ from app.setup_bd import (
 class AsistenteConexion(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
-        self.title("Registro de Matricula - Asistente de conexion")
+        self.title("AulaSync - Asistente de conexión")
         self.resizable(False, False)
         self._construir_ui()
 

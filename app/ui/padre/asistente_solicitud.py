@@ -75,7 +75,7 @@ class AsistenteSolicitud(tk.Toplevel):
 
     def __init__(self, parent, id_solicitud: str | None = None, al_cerrar=None):
         super().__init__(parent)
-        self.title("Nueva solicitud de matrícula")
+        self.title("AulaSync - Nueva solicitud de matrícula")
         self.geometry("980x680")
         self.transient(parent)
         self.grab_set()

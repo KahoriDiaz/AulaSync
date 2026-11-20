@@ -45,7 +45,7 @@ class TestBuild(unittest.TestCase):
     def test_build_bat_incluye_opciones_y_archivos_fuera_del_exe(self):
         contenido = _leer("build.bat")
         for fragmento in (
-            "--noconfirm --onedir --windowed --name MatriculaApp",
+            "--noconfirm --onedir --windowed --name AulaSync",
             "python -m PyInstaller --version",
             "python -m PyInstaller %OPTS% %TESS% main.py",
             '--add-data "sql;sql"',
@@ -66,7 +66,7 @@ class TestBuild(unittest.TestCase):
         contenido = _leer("empaquetar.ps1")
         for fragmento in (
             "Entrega5_GrupoXX.zip",
-            "MatriculaApp",
+            "AulaSync",
             "codigo_fuente",
             "script_bd",
             "documentos",
@@ -94,10 +94,10 @@ class TestRutasEmpaquetadas(unittest.TestCase):
     def test_rutas_congeladas_separan_exe_y_recursos(self):
         with tempfile.TemporaryDirectory() as temporal:
             base = Path(temporal)
-            exe = base / "MatriculaApp" / "MatriculaApp.exe"
+            exe = base / "AulaSync" / "AulaSync.exe"
             exe.parent.mkdir(parents=True)
             exe.touch()
-            internal = base / "MatriculaApp" / "_internal"
+            internal = base / "AulaSync" / "_internal"
             internal.mkdir()
             with patch.object(config_mod.sys, "frozen", True, create=True), patch.object(
                 config_mod.sys, "executable", str(exe)
@@ -129,7 +129,7 @@ class TestLEEME(unittest.TestCase):
         contenido = _leer("LEEME.txt")
         for fragmento in (
             "MySQL 8.0 instalado y en ejecución",
-            "MatriculaApp.exe",
+            "AulaSync.exe",
             "asistente de conexión",
             "secretaria123",
             "padre123",

@@ -3,20 +3,20 @@
 $ErrorActionPreference = 'Stop'
 
 $raiz = Split-Path -Parent $MyInvocation.MyCommand.Path
-$ejecutable = Join-Path $raiz 'dist\MatriculaApp\MatriculaApp.exe'
+$ejecutable = Join-Path $raiz 'dist\AulaSync\AulaSync.exe'
 if (-not (Test-Path $ejecutable)) {
-    throw 'No se encontro MatriculaApp.exe. Ejecute primero build.bat.'
+    throw 'No se encontro AulaSync.exe. Ejecute primero build.bat.'
 }
 
 $zip = Join-Path $raiz 'Entrega5_GrupoXX.zip'
-$tmp = Join-Path $env:TEMP ('matricula_entrega_' + [guid]::NewGuid().ToString('N'))
+$tmp = Join-Path $env:TEMP ('aulasync_entrega_' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $tmp -Force | Out-Null
 
 try {
     # 1) Aplicacion compilada (exe + dependencias + sql/ + tesseract/ opcional).
-    $app = Join-Path $tmp 'MatriculaApp'
+    $app = Join-Path $tmp 'AulaSync'
     New-Item -ItemType Directory -Path $app -Force | Out-Null
-    Copy-Item -Path (Join-Path $raiz 'dist\MatriculaApp\*') -Destination $app -Recurse -Force
+    Copy-Item -Path (Join-Path $raiz 'dist\AulaSync\*') -Destination $app -Recurse -Force
 
     # Limpieza: nunca distribuir credenciales ni datos generados por el desarrollador.
     Remove-Item (Join-Path $app 'config.ini') -Force -ErrorAction SilentlyContinue

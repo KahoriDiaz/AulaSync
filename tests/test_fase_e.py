@@ -130,6 +130,41 @@ class TestDatosDemo(unittest.TestCase):
         self.assertNotIn("'datos_demo'", fuente)
 
 
+class TestMarcaAulaSync(unittest.TestCase):
+    def test_nombre_del_sistema_en_documentacion_y_docstrings(self) -> None:
+        self.assertTrue(_leer("LEEME.txt").startswith("AULASYNC — ENTREGA 5"))
+        self.assertTrue(_leer("documentos/MANUAL_USUARIO.md").startswith("# Manual de usuario — AulaSync"))
+        for relativo in ("main.py", "app/__init__.py"):
+            texto = _leer(relativo)
+            self.assertIn("AulaSync", texto, relativo)
+            self.assertNotIn("Registro de Matrícula", texto, relativo)
+            self.assertNotIn("Registro de Matricula", texto, relativo)
+
+    def test_empaquetado_usa_aula_sync(self) -> None:
+        for relativo in ("build.bat", "empaquetar.ps1"):
+            texto = _leer(relativo)
+            self.assertIn("AulaSync", texto, relativo)
+            self.assertNotIn("MatriculaApp", texto, relativo)
+        self.assertIn("--name AulaSync", _leer("build.bat"))
+        self.assertIn(r"dist\AulaSync\AulaSync.exe", _leer("empaquetar.ps1"))
+        self.assertIn("'AulaSync'", _leer("empaquetar.ps1"))
+
+    def test_todas_las_ventanas_tkinter_llevan_la_marca(self) -> None:
+        titulos: list[str] = []
+        for ruta in sorted((RAIZ / "app" / "ui").rglob("*.py")):
+            fuente = ruta.read_text(encoding="utf-8")
+            titulos.extend(re.findall(r'self\.title\(\s*f?"([^"]+)"', fuente))
+        self.assertGreaterEqual(len(titulos), 9)
+        for titulo in titulos:
+            with self.subTest(titulo=titulo):
+                self.assertTrue(titulo.startswith("AulaSync"), titulo)
+        self.assertIn("AulaSync", _leer("app/ui/login.py"))
+        self.assertIn("AulaSync - Asistente de conexión", _leer("app/ui/asistente_conexion.py"))
+        self.assertNotIn("Registro de Matrícula", "\n".join(
+            ruta.read_text(encoding="utf-8") for ruta in (RAIZ / "app" / "ui").rglob("*.py")
+        ))
+
+
 class TestEntradaDni(unittest.TestCase):
     def test_componente_solo_acepta_hasta_8_digitos(self) -> None:
         fuente = _leer("app/ui/componentes.py")

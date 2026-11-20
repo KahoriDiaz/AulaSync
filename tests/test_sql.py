@@ -410,7 +410,7 @@ class TestSinDMLEnCodigo(unittest.TestCase):
                 )
 
 
-class TestMatriculaAppSinDMLDirecto(unittest.TestCase):
+class TestAulaSyncSinDMLDirecto(unittest.TestCase):
     def test_matricula_app_no_puede_insert(self):
         cnx = conectar()
         try:

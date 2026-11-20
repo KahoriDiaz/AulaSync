@@ -1,5 +1,5 @@
-REGISTRO DE MATRÍCULA — ENTREGA 5
-=================================
+AULASYNC — ENTREGA 5
+====================
 
 Requisitos para el revisor
 --------------------------
@@ -11,7 +11,7 @@ Requisitos para el revisor
 Ejecución del entregable
 ------------------------
 1. Descomprimir Entrega5_GrupoXX.zip (renombrar XX con el número de grupo).
-2. Entrar en la carpeta MatriculaApp/ y ejecutar MatriculaApp.exe.
+2. Entrar en la carpeta AulaSync/ y ejecutar AulaSync.exe.
 3. Si no existe config.ini, se abre el asistente de conexión:
    a) Probar la conexión con el usuario administrador de MySQL.
    b) Presionar "Crear base de datos y cargar datos de prueba".
@@ -54,8 +54,8 @@ documentos/DISENO_FLUJO.md (incluido en el ZIP).
 
 Archivos junto al ejecutable (fuera del .exe)
 ---------------------------------------------
-MatriculaApp/
-├─ MatriculaApp.exe
+AulaSync/
+├─ AulaSync.exe
 ├─ _internal/                 (dependencias; NO editar)
 ├─ sql/                       (scripts 01 a 06 usados por el asistente)
 ├─ tesseract/                 (opcional: tesseract.exe + tessdata/spa.traineddata)
@@ -68,7 +68,7 @@ MatriculaApp/
 Estructura del ZIP
 ------------------
 Entrega5_GrupoXX.zip
-├─ MatriculaApp/     (exe + dependencias + sql/ + tesseract/ opcional)
+├─ AulaSync/     (exe + dependencias + sql/ + tesseract/ opcional)
 ├─ codigo_fuente/    (todo el proyecto documentado, incluye datos_demo/)
 ├─ script_bd/        (los .sql 01 a 06)
 ├─ documentos/       (informe, memoria, manual, diseño del flujo y capturas)
@@ -77,7 +77,7 @@ Entrega5_GrupoXX.zip
 Datos demo incluidos
 --------------------
 Se distribuyen 9 solicitudes ficticias en datos_demo/solicitudes/ y build.bat
-las copia dentro de MatriculaApp/data/solicitudes/. Cubren Borrador, Enviada,
+las copia dentro de AulaSync/data/solicitudes/. Cubren Borrador, Enviada,
 Observada, Vacante aceptada, Aprobada y Rechazada en ambas etapas. Los DNI son
 ficticios y el padre de la mayoría de los ejemplos es padre_demo (29481029).
 Antes de comprimir, empaquetar.ps1 elimina config.ini y los perfiles *.json, y
@@ -103,7 +103,7 @@ Sin Tesseract, el botón de OCR se desactiva y los campos se llenan manualmente.
 Regenerar el entregable (desarrollo)
 ------------------------------------
 1. pip install -r requirements.txt
-2. build.bat        -> dist\MatriculaApp\MatriculaApp.exe
+2. build.bat        -> dist\AulaSync\AulaSync.exe
 3. empaquetar.bat   -> Entrega5_GrupoXX.zip
 
 En PowerShell los .bat de la carpeta actual se invocan con ./ delante:

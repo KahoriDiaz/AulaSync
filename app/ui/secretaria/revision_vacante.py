@@ -18,7 +18,7 @@ class RevisionVacante(tk.Toplevel):
 
     def __init__(self, parent, id_solicitud: str, al_cerrar=None):
         super().__init__(parent)
-        self.title(f"Revisión de vacante {id_solicitud}")
+        self.title(f"AulaSync - Revisión de vacante {id_solicitud}")
         self.geometry("950x650")
         self.transient(parent)
         self.al_cerrar = al_cerrar

@@ -1,4 +1,4 @@
-"""Punto de entrada del aplicativo de escritorio de Registro de Matrícula.
+"""Punto de entrada del aplicativo de escritorio AulaSync.
 
 Flujo de arranque (§4):
 1. Lee config.ini. Si no existe o la conexión falla → abre el asistente de conexión.

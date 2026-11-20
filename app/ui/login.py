@@ -22,7 +22,7 @@ class DialogoCrearCuenta(tk.Toplevel):
 
     def __init__(self, parent, al_crear):
         super().__init__(parent)
-        self.title("Crear cuenta de padre/apoderado")
+        self.title("AulaSync - Crear cuenta de padre/apoderado")
         self.resizable(False, False)
         self.al_crear = al_crear
         self.transient(parent)  # el login está visible
@@ -112,7 +112,7 @@ class DialogoCrearCuenta(tk.Toplevel):
 class VentanaLogin(tk.Toplevel):
     def __init__(self, parent, exito_callback):
         super().__init__(parent)
-        self.title("Registro de Matrícula - Inicio de sesión")
+        self.title("AulaSync")
         self.resizable(False, False)
         self.exito_callback = exito_callback
         self._construir_ui()
@@ -122,7 +122,7 @@ class VentanaLogin(tk.Toplevel):
         marco = ttk.Frame(self, padding=25)
         marco.pack(fill="both", expand=True)
 
-        ttk.Label(marco, text="Registro de Matrícula", font=("Segoe UI", 14, "bold")).pack(pady=(0, 10))
+        ttk.Label(marco, text="AulaSync", font=("Segoe UI", 16, "bold")).pack(pady=(0, 10))
 
         ttk.Label(marco, text="Usuario").pack(anchor="w")
         self.ent_usuario = ttk.Entry(marco, width=30)
