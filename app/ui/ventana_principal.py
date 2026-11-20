@@ -14,6 +14,9 @@ from app.servicios import auth, estudiantes, padres, instituciones
 from app.ui.componentes import CampoBusqueda, Tabla
 from app.ui.padre.mis_solicitudes import MisSolicitudes
 from app.ui.secretaria.bandeja import BandejaSolicitudes
+from app.ui.secretaria.distribucion import Distribucion
+from app.ui.secretaria.listas import Listas
+from app.ui.secretaria.reportes import Reportes
 
 
 class VentanaPrincipal(tk.Tk):
@@ -50,8 +53,15 @@ class VentanaPrincipal(tk.Tk):
             m_mant.add_command(label="Instituciones Educativas", command=lambda: self.mostrar_pestana("instituciones"))
             barra.add_cascade(label="Mantenimiento", menu=m_mant)
 
+            m_procesos = tk.Menu(barra, tearoff=0)
+            m_procesos.add_command(label="Distribución por secciones", command=lambda: self.mostrar_pestana("distribucion"))
+            m_procesos.add_command(label="Listas y comparación", command=lambda: self.mostrar_pestana("listas"))
+            barra.add_cascade(label="Procesos", menu=m_procesos)
+
             m_reportes = tk.Menu(barra, tearoff=0)
             m_reportes.add_command(label="10 consultas representativas", command=lambda: self.mostrar_pestana("reportes"))
+            m_reportes.add_command(label="Cupos por sección", command=lambda: self.mostrar_pestana("distribucion"))
+            m_reportes.add_command(label="Comparación de listas", command=lambda: self.mostrar_pestana("listas"))
             barra.add_cascade(label="Reportes", menu=m_reportes)
 
         if rol == "Padre":
@@ -97,11 +107,12 @@ class VentanaPrincipal(tk.Tk):
             servicio=instituciones,
             campos_alta=["CodigoModularIE", "NombreIE", "TipoIE"],
         )
-        self.pestanas["reportes"] = self._pestana_reportes()
-
         sesion = auth.sesion_actual()
         if sesion and sesion.rol == "Secretaria":
             self.pestanas["bandeja"] = self._pestana_bandeja()
+            self.pestanas["distribucion"] = self._pestana_distribucion()
+            self.pestanas["listas"] = self._pestana_listas()
+            self.pestanas["reportes"] = self._pestana_reportes()
         if sesion and sesion.rol == "Padre":
             self.pestanas["solicitudes"] = self._pestana_solicitudes()
 
@@ -144,11 +155,22 @@ class VentanaPrincipal(tk.Tk):
     def _pestana_reportes(self):
         frame = ttk.Frame(self.notebook)
         self.notebook.add(frame, text="Reportes (10 consultas)")
-        ttk.Label(
-            frame,
-            text="Reportes: las 10 consultas representativas del proceso de matrícula.\n"
-                 "Pantallas con parámetros y al menos 6 con JOIN (§6.3 punto 7).",
-        ).pack(pady=40)
+        frame.contenido = Reportes(frame)
+        frame.contenido.pack(fill="both", expand=True)
+        return frame
+
+    def _pestana_distribucion(self):
+        frame = ttk.Frame(self.notebook)
+        self.notebook.add(frame, text="Distribución")
+        frame.contenido = Distribucion(frame)
+        frame.contenido.pack(fill="both", expand=True)
+        return frame
+
+    def _pestana_listas(self):
+        frame = ttk.Frame(self.notebook)
+        self.notebook.add(frame, text="Listas y comparación")
+        frame.contenido = Listas(frame)
+        frame.contenido.pack(fill="both", expand=True)
         return frame
 
     def _pestana_solicitudes(self):
@@ -190,6 +212,12 @@ class VentanaPrincipal(tk.Tk):
                 return clave
             if clave == "bandeja" and texto == "Bandeja de solicitudes":
                 return clave
+            if clave == "distribucion" and texto == "Distribución":
+                return clave
+            if clave == "listas" and texto == "Listas y comparación":
+                return clave
+            if clave == "reportes" and texto == "Reportes (10 consultas)":
+                return clave
         return None
 
     def mostrar_pestana(self, clave):
@@ -205,7 +233,7 @@ class VentanaPrincipal(tk.Tk):
         frame = self.pestanas.get(clave)
         if not frame:
             return
-        if clave in ("solicitudes", "bandeja"):
+        if clave in ("solicitudes", "bandeja", "distribucion", "listas", "reportes"):
             frame.contenido.recargar()
             return
         servicio = frame.servicio
