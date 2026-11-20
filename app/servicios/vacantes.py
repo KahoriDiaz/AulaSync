@@ -11,7 +11,7 @@ from typing import Any
 from app import db
 from app.servicios import matricula, solicitudes
 
-CAPACIDAD = matricula.CAPACIDAD if hasattr(matricula, "CAPACIDAD") else 30
+CAPACIDAD = 30  # máximo fijo por sección, según las reglas de negocio
 SECCIONES = matricula.SECCIONES
 
 
@@ -21,10 +21,13 @@ def cupos_por_seccion(anio: int, nivel: str, grado: str) -> list[dict[str, Any]]
     for seccion in SECCIONES.get(nivel, ()):
         conjuntos = db.call_proc("sp_cupos_seccion", (anio, nivel, grado, seccion))
         fila = conjuntos[0][0] if conjuntos and conjuntos[0] else {}
+        matriculados = int(fila.get("Matriculados") or 0)
         filas.append({
             "Seccion": seccion,
-            "Matriculados": int(fila.get("Matriculados") or 0),
-            "Vacantes": int(fila.get("Vacantes") or 0) if fila else CAPACIDAD,
+            "Matriculados": matriculados,
+            # Se calcula aquí para mostrar siempre 30 - matriculados, aunque el
+            # procedimiento devuelva un valor distinto por datos heredados.
+            "Vacantes": max(0, CAPACIDAD - matriculados),
         })
     return filas
 

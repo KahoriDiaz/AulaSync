@@ -199,6 +199,12 @@ class TestDisponibilidadReferencial(unittest.TestCase):
         self.assertEqual(llamadas.call_count, 3)
         self.assertTrue(all(c.args[0] == "sp_cupos_seccion" for c in llamadas.call_args_list))
 
+    def test_vacantes_se_calculan_como_30_menos_matriculados(self) -> None:
+        conjuntos = [[[{"Matriculados": 28, "Vacantes": 99}]]]
+        with patch.object(vacantes.db, "call_proc", side_effect=conjuntos * 3):
+            filas = vacantes.cupos_por_seccion(date.today().year + 1, "Inicial", "3 a.")
+        self.assertEqual([fila["Vacantes"] for fila in filas], [2, 2])
+
     def test_sin_vacantes_no_bloquea_el_envio(self) -> None:
         with patch.object(vacantes, "vacantes_por_grado", return_value=0):
             self.assertEqual(vacantes.vacantes_por_grado(2027, "Primaria", "1.°"), 0)

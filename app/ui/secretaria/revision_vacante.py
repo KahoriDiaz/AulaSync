@@ -91,6 +91,10 @@ class RevisionVacante(tk.Toplevel):
         ttk.Label(self.detalle, textvariable=self.grado_var, wraplength=560).pack(
             fill="x", pady=6
         )
+        self.total_var = tk.StringVar(value="Vacantes totales del grado: —")
+        ttk.Label(
+            self.detalle, textvariable=self.total_var, font=("TkDefaultFont", 10, "bold")
+        ).pack(fill="x")
         self.cupos_tree = ttk.Treeview(
             self.detalle, columns=("Seccion", "Matriculados", "Vacantes"),
             show="headings", height=5,
@@ -208,6 +212,9 @@ class RevisionVacante(tk.Toplevel):
             self.cupos_tree.insert("", "end", values=(
                 fila["Seccion"], fila["Matriculados"], fila["Vacantes"],
             ))
+        self.total_var.set(
+            "Vacantes totales del grado: " + str(sum(fila["Vacantes"] for fila in filas))
+        )
         if not filas:
             self.cupos_tree.insert("", "end", values=("—", "—", "Sin vacantes"))
 
