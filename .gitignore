@@ -13,6 +13,7 @@ muestras/
 almacen/
 capturas/
 tesseract/
+data/perfiles/*.json
 docs/*.docx
 docs/*.pdf
 

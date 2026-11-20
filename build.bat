@@ -32,6 +32,7 @@ copy /y "LEEME.txt" "dist\MatriculaApp\LEEME.txt" >nul
 for %%D in (pendientes aprobadas rechazadas) do (
     if not exist "dist\MatriculaApp\data\solicitudes\%%D" mkdir "dist\MatriculaApp\data\solicitudes\%%D"
 )
+if not exist "dist\MatriculaApp\data\perfiles" mkdir "dist\MatriculaApp\data\perfiles"
 
 echo.
 echo Listo: dist\MatriculaApp\MatriculaApp.exe

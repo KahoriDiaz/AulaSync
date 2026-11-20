@@ -56,6 +56,7 @@ class TestBuild(unittest.TestCase):
             'if exist "tesseract\\tessdata\\spa.traineddata"',
             'copy /y "config.ini.example"',
             "data\\solicitudes",
+            "data\\perfiles",
         ):
             with self.subTest(fragmento=fragmento):
                 self.assertIn(fragmento, contenido)

@@ -37,8 +37,9 @@ def lanzar_login() -> None:
     from app.ui.login import VentanaLogin
 
     dlg = VentanaLogin(root, al_exito)
-    dlg.transient(root)
-    dlg.grab_set()
+    # No transient(root): en Windows una transient de una raíz withdraw() también
+    # se oculta y el login no aparece. Al cerrar el login se cierra la raíz.
+    dlg.protocol("WM_DELETE_WINDOW", root.destroy)
     root.mainloop()
 
 
