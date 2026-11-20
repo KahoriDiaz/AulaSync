@@ -13,6 +13,7 @@ from tkinter import messagebox, simpledialog, ttk
 from app.servicios import auth, estudiantes, padres, instituciones
 from app.ui.componentes import CampoBusqueda, Tabla
 from app.ui.padre.mis_solicitudes import MisSolicitudes
+from app.ui.padre.solicitar_vacante import SolicitarVacante
 from app.ui.secretaria.bandeja import BandejaSolicitudes
 from app.ui.secretaria.distribucion import Distribucion
 from app.ui.secretaria.listas import Listas
@@ -47,6 +48,10 @@ class VentanaPrincipal(tk.Tk):
                 label="Bandeja de solicitudes",
                 command=lambda: self.mostrar_pestana("bandeja"),
             )
+            barra.add_command(
+                label="Vacantes por atender",
+                command=self._vacantes_por_atender,
+            )
             m_mant = tk.Menu(barra, tearoff=0)
             m_mant.add_command(label="Estudiantes", command=lambda: self.mostrar_pestana("estudiantes"))
             m_mant.add_command(label="Padres / Apoderados", command=lambda: self.mostrar_pestana("padres"))
@@ -68,6 +73,10 @@ class VentanaPrincipal(tk.Tk):
             barra.add_command(
                 label="Mis solicitudes",
                 command=lambda: self.mostrar_pestana("solicitudes"),
+            )
+            barra.add_command(
+                label="Solicitar vacante",
+                command=self._solicitar_vacante,
             )
 
         barra.add_command(label="Ayuda", command=self._ayuda)
@@ -309,6 +318,17 @@ class VentanaPrincipal(tk.Tk):
             return
         self._recargar(clave)
         messagebox.showinfo("Éxito", "Registro eliminado.")
+
+    # ---------------------------------------------------------------- flujo por etapas
+    def _solicitar_vacante(self):
+        SolicitarVacante(self, al_cerrar=lambda: self._recargar("solicitudes"))
+
+    def _vacantes_por_atender(self):
+        self.mostrar_pestana("bandeja")
+        bandeja = self.pestanas.get("bandeja")
+        if bandeja and hasattr(bandeja.contenido, "etapa_var"):
+            bandeja.contenido.etapa_var.set("Vacante")
+            bandeja.contenido.recargar()
 
     # ---------------------------------------------------------------- acciones generales
     def cerrar_sesion(self):

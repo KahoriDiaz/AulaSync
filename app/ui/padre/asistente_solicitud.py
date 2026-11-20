@@ -82,7 +82,7 @@ class AsistenteSolicitud(tk.Toplevel):
         try:
             self.datos = (
                 solicitudes.obtener(id_solicitud)
-                if id_solicitud else solicitudes.crear_borrador()
+                if id_solicitud else solicitudes.crear_borrador(etapa="matricula")
             )
         except errores.ErrorApp as exc:
             messagebox.showerror("Error", str(exc), parent=self)
@@ -101,6 +101,11 @@ class AsistenteSolicitud(tk.Toplevel):
         self.dni_padre_labels: list[tk.StringVar] = []
         self.logros_tree: ttk.Treeview | None = None
         self.ocr_button: ttk.Button | None = None
+        # Tras aceptar la vacante, el nivel y grado vienen de la etapa anterior.
+        self.destino_bloqueado = (
+            solicitudes.etapa_de(self.datos) == "matricula"
+            and self.datos.get("estado") == "Vacante aceptada"
+        )
         self._construir()
         self._cargar_datos()
 
@@ -169,8 +174,18 @@ class AsistenteSolicitud(tk.Toplevel):
 
         botones = ttk.Frame(marco)
         botones.pack(fill="x", padx=6, pady=6)
-        ttk.Button(botones, text="Agregar hermano", command=self.agregar_alumno).pack(side="left", padx=3)
-        ttk.Button(botones, text="Quitar seleccionado", command=self.quitar_alumno).pack(side="left", padx=3)
+        self.boton_agregar = ttk.Button(botones, text="Agregar hermano", command=self.agregar_alumno)
+        self.boton_agregar.pack(side="left", padx=3)
+        self.boton_quitar = ttk.Button(botones, text="Quitar seleccionado", command=self.quitar_alumno)
+        self.boton_quitar.pack(side="left", padx=3)
+        if self.destino_bloqueado:
+            self.boton_agregar["state"] = "disabled"
+            self.boton_quitar["state"] = "disabled"
+            ttk.Label(
+                pagina,
+                text="Nivel y grado definidos al solicitar la vacante; no se pueden cambiar.",
+                foreground="#1256a0",
+            ).pack(fill="x", padx=8)
 
         destino = ttk.LabelFrame(pagina, text="Destino del alumno seleccionado")
         destino.pack(fill="x", padx=8, pady=8)
@@ -181,7 +196,9 @@ class AsistenteSolicitud(tk.Toplevel):
         self.nivel_combo.pack(side="left", padx=4)
         self.nivel_combo.bind("<<ComboboxSelected>>", self._nivel_cambiado)
         ttk.Label(destino, text="Grado:").pack(side="left", padx=4)
-        self.grado_combo = ttk.Combobox(destino, textvariable=self.grado_var, state="readonly")
+        estado_destino = "disabled" if self.destino_bloqueado else "readonly"
+        self.nivel_combo["state"] = estado_destino
+        self.grado_combo = ttk.Combobox(destino, textvariable=self.grado_var, state=estado_destino)
         self.grado_combo.pack(side="left", padx=4)
         self.grado_combo.bind("<<ComboboxSelected>>", self._grado_cambiado)
 
@@ -209,7 +226,7 @@ class AsistenteSolicitud(tk.Toplevel):
             return
         destino = self.datos["alumnos"][indice]["destino"]
         self.nivel_var.set(destino.get("nivel", ""))
-        self.nivel_cambiado()
+        self._nivel_cambiado()
         self.grado_var.set(destino.get("grado", ""))
 
     def _nivel_cambiado(self, _evento=None) -> None:
@@ -739,7 +756,7 @@ class AsistenteSolicitud(tk.Toplevel):
         self._sincronizar_documentos()
 
     def _guardar_datos(self) -> bool:
-        if self.datos.get("estado") not in ("Borrador", "Observada"):
+        if self.datos.get("estado") not in ("Borrador", "Observada", "Vacante aceptada"):
             return True
         try:
             solicitudes.actualizar(self.datos["id"], self.datos)
@@ -782,7 +799,11 @@ class AsistenteSolicitud(tk.Toplevel):
         """Guarda el contenido actual como borrador."""
         self._sincronizar()
         if self._guardar_datos():
-            messagebox.showinfo("Solicitud guardada", "El borrador quedó guardado.", parent=self)
+            mensaje = (
+                "La matrícula quedó guardada; puede continuar después."
+                if self.destino_bloqueado else "El borrador quedó guardado."
+            )
+            messagebox.showinfo("Solicitud guardada", mensaje, parent=self)
 
     def enviar(self) -> None:
         """Valida la solicitud completa y la envía a la bandeja de la secretaria."""
@@ -804,7 +825,7 @@ class AsistenteSolicitud(tk.Toplevel):
             messagebox.showerror("Error", str(exc), parent=self)
 
     def _cerrar(self) -> None:
-        if self.datos.get("estado") in ("Borrador", "Observada"):
+        if self.datos.get("estado") in ("Borrador", "Observada", "Vacante aceptada"):
             self._sincronizar()
             self._guardar_datos()
         if self.al_cerrar:

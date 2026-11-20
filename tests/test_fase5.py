@@ -109,7 +109,7 @@ class TestFase5(unittest.TestCase):
             id_usuario=7, nombre_usuario="padre_demo", rol="Padre",
             dni="29481029", nombres="María", apellidos="Acosta",
         ))
-        datos = sol.crear_borrador(date.today().year + 1)
+        datos = sol.crear_borrador(date.today().year + 1, etapa="matricula")
         for dni in (["91234567", "91234568"] if con_dos_hermanos else ["91234567"]):
             alumno = sol.nuevo_alumno()
             alumno["ficha"].update({

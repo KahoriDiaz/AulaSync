@@ -25,6 +25,7 @@ class Tabla(ttk.Frame):
         marco.pack(fill="both", expand=True)
 
         self.tree = ttk.Treeview(marco, columns=self.columnas, show="headings")
+        self.tree.tag_configure("atencion", background="#fff3cd", foreground="#8a5a00")
         for col in self.columnas:
             texto = col.replace("_", " ").title()
             ancho = (anchos or {}).get(col, 100)
@@ -62,7 +63,10 @@ class Tabla(ttk.Frame):
             self.tree.delete(item)
         for fila in filas:
             valores = [fila.get(col, "") for col in self.columnas]
-            self.tree.insert("", "end", values=valores)
+            etiqueta = fila.get("_tag")
+            self.tree.insert(
+                "", "end", values=valores, tags=(etiqueta,) if etiqueta else ()
+            )
 
     def _ordenar(self, col):
         asc = self._orden_asc[col]

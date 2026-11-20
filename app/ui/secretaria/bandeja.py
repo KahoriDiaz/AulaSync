@@ -14,8 +14,9 @@ from app import errores
 from app.servicios import solicitudes
 from app.ui.componentes import Tabla
 from app.ui.secretaria.revision import RevisionSolicitud
+from app.ui.secretaria.revision_vacante import RevisionVacante
 
-COLUMNAS = ("ID", "Año", "Estado", "Solicitante", "Fecha envío", "Alumnos")
+COLUMNAS = ("ID", "Año", "Etapa", "Estado", "Solicitante", "Fecha envío", "Alumnos")
 
 
 class BandejaSolicitudes(ttk.Frame):
@@ -45,7 +46,13 @@ class BandejaSolicitudes(ttk.Frame):
             filtros, textvariable=self.estado_var, state="readonly",
             values=("Todas",) + solicitudes.ESTADOS,
         ).pack(side="left")
-        self.contador_var = tk.StringVar(value="Pendientes: 0")
+        ttk.Label(filtros, text="Etapa:").pack(side="left", padx=8)
+        self.etapa_var = tk.StringVar(value="Todas")
+        ttk.Combobox(
+            filtros, textvariable=self.etapa_var, state="readonly",
+            values=("Todas", "Vacante", "Matrícula"),
+        ).pack(side="left")
+        self.contador_var = tk.StringVar(value="Pendientes: 0 | Vacantes por atender: 0")
         ttk.Label(filtros, textvariable=self.contador_var, font=("TkDefaultFont", 10, "bold")).pack(
             side="right", padx=8
         )
@@ -61,22 +68,39 @@ class BandejaSolicitudes(ttk.Frame):
             messagebox.showerror("Error", str(exc))
             return
         pendientes = sum(1 for s in datos if s.get("estado") == "Enviada")
-        self.contador_var.set(f"Pendientes: {pendientes}")
+        vacantes = sum(
+            1 for s in datos
+            if s.get("estado") == "Enviada" and solicitudes.etapa_de(s) == "vacante"
+        )
+        atrasadas = sum(1 for s in datos if solicitudes.sin_respuesta(s))
+        self.contador_var.set(
+            f"Pendientes: {pendientes} | Vacantes por atender: {vacantes} "
+            f"| Sin respuesta >7 días: {atrasadas}"
+        )
         anio = self.anio_var.get().strip()
         estado = self.estado_var.get()
+        etapa = self.etapa_var.get()
         filas = []
         for solicitud in datos:
             if anio and str(solicitud.get("anio", "")) != anio:
                 continue
             if estado != "Todas" and solicitud.get("estado") != estado:
                 continue
+            etapa_actual = solicitudes.etapa_de(solicitud)
+            if etapa == "Vacante" and etapa_actual != "vacante":
+                continue
+            if etapa == "Matrícula" and etapa_actual != "matricula":
+                continue
+            atrasada = solicitudes.sin_respuesta(solicitud)
             filas.append({
                 "ID": solicitud.get("id", ""),
                 "Año": solicitud.get("anio", ""),
-                "Estado": solicitud.get("estado", ""),
+                "Etapa": "Vacante" if etapa_actual == "vacante" else "Matrícula",
+                "Estado": ("⚠ " if atrasada else "") + solicitudes.texto_estado(solicitud),
                 "Solicitante": solicitud.get("dni_solicitante", ""),
                 "Fecha envío": solicitud.get("fecha_envio") or "-",
                 "Alumnos": len(solicitud.get("alumnos", [])),
+                "_tag": "atencion" if atrasada else "",
             })
         self.tabla.cargar(filas)
 
@@ -91,7 +115,15 @@ class BandejaSolicitudes(ttk.Frame):
         id_solicitud = self._id_seleccionado()
         if not id_solicitud:
             return
-        RevisionSolicitud(self, id_solicitud, al_cerrar=self.recargar)
+        try:
+            datos = solicitudes.obtener(id_solicitud)
+        except errores.ErrorApp as exc:
+            messagebox.showerror("Error", str(exc))
+            return
+        if solicitudes.etapa_de(datos) == "vacante":
+            RevisionVacante(self, id_solicitud, al_cerrar=self.recargar)
+        else:
+            RevisionSolicitud(self, id_solicitud, al_cerrar=self.recargar)
 
     def observar(self) -> None:
         id_solicitud = self._id_seleccionado()

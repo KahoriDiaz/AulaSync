@@ -51,7 +51,19 @@ CAMPOS_PADRE_OBLIGATORIOS = (
     "FechaNacimiento", "GradoInstruccion", "DomicilioActual",
     "DistritoDomicilio", "Celular",
 )
-ESTADOS = ("Borrador", "Enviada", "Observada", "Aprobada", "Rechazada")
+ESTADOS = (
+    "Borrador", "Enviada", "Vacante aceptada", "Observada", "Aprobada", "Rechazada",
+)
+ETAPAS = ("vacante", "matricula")
+# Transiciones permitidas (la etapa se valida además en validar_transicion).
+TRANSICIONES = {
+    "Borrador": {"Enviada", "Rechazada"},
+    "Enviada": {"Vacante aceptada", "Observada", "Rechazada", "Aprobada"},
+    "Vacante aceptada": {"Enviada", "Rechazada"},
+    "Observada": {"Enviada", "Rechazada"},
+    "Aprobada": set(),
+    "Rechazada": set(),
+}
 SITUACIONES_FINALES = ("APROBADO", "REQUIERE RECUPERACIÓN")
 CODIGO_VIRTUAL_RE = re.compile(r"^[A-Z0-9]{8}$")
 CARPETAS = {
@@ -140,8 +152,12 @@ def plantilla_solicitud(anio: int, dni_solicitante: str) -> dict[str, Any]:
     return {
         "id": "",
         "anio": int(anio),
+        "etapa": "vacante",
         "estado": "Borrador",
         "dni_solicitante": str(dni_solicitante),
+        "contacto": {
+            "nombres_apoderado": "", "celular": "", "correo": "",
+        },
         "fecha_creacion": datetime.now().isoformat(timespec="seconds"),
         "fecha_envio": None,
         "padres": [],
@@ -156,6 +172,106 @@ def plantilla_solicitud(anio: int, dni_solicitante: str) -> dict[str, Any]:
             "usuario": str(dni_solicitante),
         }],
     }
+
+
+def etapa_de(solicitud: dict[str, Any]) -> str:
+    """Etapa de la solicitud; los JSON anteriores a este ajuste son de matrícula."""
+    etapa = str(solicitud.get("etapa") or "matricula")
+    return etapa if etapa in ETAPAS else "matricula"
+
+
+def validar_transicion(
+    estado_actual: str,
+    estado_nuevo: str,
+    etapa_actual: str = "matricula",
+    etapa_nueva: str | None = None,
+) -> None:
+    """Rechaza cualquier transición de estado/etapa no prevista en el flujo."""
+    if estado_actual not in TRANSICIONES:
+        raise ErrorValidacion(f"Estado desconocido: {estado_actual}.")
+    if estado_nuevo not in ESTADOS:
+        raise ErrorValidacion(f"Estado destino desconocido: {estado_nuevo}.")
+    etapa_nueva = etapa_actual if etapa_nueva is None else etapa_nueva
+    if etapa_actual not in ETAPAS or etapa_nueva not in ETAPAS:
+        raise ErrorValidacion("Etapa de solicitud no válida.")
+    if estado_nuevo not in TRANSICIONES[estado_actual]:
+        raise ErrorValidacion(
+            f"No se puede pasar de '{estado_actual}' a '{estado_nuevo}'."
+        )
+    if estado_nuevo == "Vacante aceptada" and (
+        etapa_actual != "vacante" or etapa_nueva != "matricula"
+    ):
+        raise ErrorValidacion(
+            "Una vacante solo se acepta en una solicitud de la etapa Vacante."
+        )
+    if estado_nuevo == "Aprobada" and (etapa_actual, etapa_nueva) != ("matricula", "matricula"):
+        raise ErrorValidacion("Solo se puede aprobar una solicitud de la etapa Matrícula.")
+    if estado_nuevo == "Enviada" and etapa_actual != etapa_nueva:
+        raise ErrorValidacion("El envío debe conservar la etapa de la solicitud.")
+
+
+def texto_estado(solicitud: dict[str, Any]) -> str:
+    """Texto claro para «Mis solicitudes» según etapa y estado."""
+    estado = str(solicitud.get("estado", ""))
+    etapa = etapa_de(solicitud)
+    if estado == "Borrador":
+        return (
+            "Borrador de vacante, estás completando la solicitud"
+            if etapa == "vacante" else "Borrador de matrícula"
+        )
+    if estado == "Enviada" and etapa == "vacante":
+        return "Vacante solicitada, en espera de respuesta"
+    if estado == "Vacante aceptada":
+        return "Vacante aceptada, complete su matrícula"
+    if estado == "Enviada" and etapa == "matricula":
+        return "Matrícula enviada, en revisión"
+    if estado == "Observada":
+        return "Observada: ver comentarios de la secretaria"
+    if estado == "Rechazada":
+        motivo = ""
+        for observacion in solicitud.get("observaciones", []):
+            texto = str(observacion.get("texto", ""))
+            if texto.lower().startswith("rechazada"):
+                motivo = texto.split(":", 1)[-1].strip()
+                break
+        return f"Rechazada: {motivo}" if motivo else "Rechazada: sin motivo registrado"
+    if estado == "Aprobada":
+        return "Aprobada y matriculada"
+    return estado
+
+
+def nuevo_alumno_vacante() -> dict[str, Any]:
+    """Estructura corta de un hijo en la etapa de solicitud de vacante."""
+    return {
+        "ficha": {
+            # Se escriben ambas formas para conservar compatibilidad con el
+            # asistente de cinco pasos, que usa las claves en mayúsculas.
+            "dni": "", "DNI": "", "nombres": "", "Nombres": "",
+            "apellido_paterno": "", "ApellidoPaterno": "",
+            "apellido_materno": "", "ApellidoMaterno": "",
+            "fecha_nacimiento": "", "FechaNacimiento": "",
+        },
+        "destino": {"nivel": "Primaria", "grado": "1.°"},
+        "condicion_declarada": "Nuevo",
+    }
+
+
+def sincronizar_ficha_vacante(alumno: dict[str, Any]) -> dict[str, str]:
+    """Unifica las claves minúsculas y mayúsculas de la ficha del hijo."""
+    ficha = alumno.setdefault("ficha", {})
+    equivalencias = (
+        ("dni", "DNI"), ("nombres", "Nombres"),
+        ("apellido_paterno", "ApellidoPaterno"),
+        ("apellido_materno", "ApellidoMaterno"),
+        ("fecha_nacimiento", "FechaNacimiento"),
+    )
+    valores: dict[str, str] = {}
+    for minuscula, mayuscula in equivalencias:
+        valor = str(ficha.get(minuscula) or ficha.get(mayuscula) or "").strip()
+        ficha[minuscula] = valor
+        ficha[mayuscula] = valor
+        valores[minuscula] = valor
+    return valores
 
 
 # -------------------------------------------------------------------- permisos
@@ -228,7 +344,9 @@ def obtener(id_solicitud: str, estado: str = "pendientes") -> dict[str, Any]:
 
 
 def listar_solicitudes(
-    estado: str = "pendientes", dni_solicitante: str | None = None
+    estado: str = "pendientes",
+    dni_solicitante: str | None = None,
+    etapa: str | None = None,
 ) -> list[dict[str, Any]]:
     """Lista solicitudes de una bandeja; un padre solo ve las suyas (§13.1)."""
     sesion = _sesion()
@@ -250,8 +368,33 @@ def listar_solicitudes(
             # Un JSON dañado se muestra como ilegible sin romper la bandeja.
             datos = {"id": carpeta.name, "estado": "ilegible", "error": "JSON dañado"}
         if dni_solicitante is None or str(datos.get("dni_solicitante")) == str(dni_solicitante):
+            if etapa is not None and etapa_de(datos) != etapa:
+                continue
             resultado.append(datos)
     return resultado
+
+
+def sin_respuesta(solicitud: dict[str, Any], dias: int = 7) -> bool:
+    """Indica si una solicitud Enviada lleva más de ``dias`` sin respuesta."""
+    if solicitud.get("estado") != "Enviada" or not solicitud.get("fecha_envio"):
+        return False
+    try:
+        fecha = datetime.fromisoformat(str(solicitud["fecha_envio"]))
+    except ValueError:
+        return False
+    return (datetime.now() - fecha).days > dias
+
+
+def contar_vacantes_por_atender() -> int:
+    """Solicitudes de vacante Enviadas que esperan respuesta de la secretaria."""
+    sesion = _sesion()
+    if sesion.rol != "Secretaria":
+        raise ErrorPermiso("Solo la secretaria puede contar las vacantes por atender.")
+    return sum(
+        1
+        for solicitud in listar_solicitudes("pendientes", etapa="vacante")
+        if solicitud.get("estado") == "Enviada"
+    )
 
 
 # -------------------------------------------------------------------- identificadores
@@ -286,11 +429,25 @@ def generar_id(anio: int) -> str:
 
 
 # ---------------------------------------------------------------------- cambios
-def crear_borrador(anio: int | None = None) -> dict[str, Any]:
+def crear_borrador(
+    anio: int | None = None, etapa: str = "vacante"
+) -> dict[str, Any]:
     """Crea una solicitud nueva en Borrador para el padre con sesión activa."""
     sesion = _exigir_padre()
+    if etapa not in ETAPAS:
+        raise ErrorValidacion("Etapa de solicitud no válida.")
     anio = int(anio or (date.today().year + 1))
     datos = plantilla_solicitud(anio, sesion.dni)
+    datos["etapa"] = etapa
+    if etapa == "vacante":
+        from app.servicios import auth
+
+        perfil = auth.leer_perfil(sesion.dni)
+        datos["contacto"] = {
+            "nombres_apoderado": str(perfil.get("nombres_apoderado", "")),
+            "celular": str(perfil.get("celular", "")),
+            "correo": str(perfil.get("correo", "")),
+        }
     datos["id"] = generar_id(anio)
     guardar_solicitud(datos)
     return datos
@@ -311,7 +468,7 @@ def actualizar(id_solicitud: str, cambios: dict[str, Any]) -> dict[str, Any]:
     """Actualiza un borrador o una solicitud observada devuelta por la secretaria."""
     sesion = _exigir_padre()
     datos = obtener(id_solicitud)
-    if datos["estado"] not in ("Borrador", "Observada"):
+    if datos["estado"] not in ("Borrador", "Observada", "Vacante aceptada"):
         raise ErrorValidacion(
             f"La solicitud {datos['estado']} ya no puede modificarse."
         )
@@ -584,19 +741,102 @@ def validar_para_enviar(solicitud: dict[str, Any]) -> list[str]:
     return errores
 
 
+def _errores_duplicados(dnis: list[str], anio: int, id_actual: str) -> list[str]:
+    """Errores por matrícula existente u otra solicitud pendiente del mismo DNI."""
+    errores: list[str] = []
+    if dnis:
+        guardadas = _solicitudes_guardadas(id_actual, anio)
+        pendientes = [
+            s for s in guardadas
+            if s.get("estado") in ("Borrador", "Enviada", "Observada", "Vacante aceptada")
+        ]
+        for solicitud_guardada in pendientes:
+            otros = [
+                str(a.get("ficha", {}).get("DNI", ""))
+                for a in solicitud_guardada.get("alumnos", [])
+            ]
+            repetidos = sorted(set(dnis) & set(otros))
+            if repetidos:
+                errores.append(
+                    f"Ya existe una solicitud pendiente para el alumno {repetidos[0]}."
+                )
+    for dni in dnis:
+        if _dni_valido(dni) and _ya_matriculado(dni, anio):
+            errores.append(f"El alumno {dni} ya tiene matrícula en {anio}.")
+    return errores
+
+
+def validar_vacante(solicitud: dict[str, Any]) -> list[str]:
+    """Valida el formulario corto de solicitud de vacante (etapa 1)."""
+    errores: list[str] = []
+    anio = solicitud.get("anio")
+    permitidos = (date.today().year, date.today().year + 1)
+    if anio not in permitidos:
+        errores.append(f"El año escolar debe ser {permitidos[0]} o {permitidos[1]}.")
+
+    contacto = solicitud.get("contacto", {})
+    if not str(contacto.get("nombres_apoderado", "")).strip():
+        errores.append("Ingrese los nombres y apellidos del apoderado.")
+    if not re.fullmatch(r"9\d{8}", str(contacto.get("celular", "")).strip()):
+        errores.append("El celular debe tener 9 dígitos y empezar con 9.")
+    correo = str(contacto.get("correo", "")).strip()
+    if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[A-Za-z]{2,}", correo):
+        errores.append("Ingrese un correo electrónico válido.")
+
+    alumnos = solicitud.get("alumnos", [])
+    if not 1 <= len(alumnos) <= MAXIMO_ALUMNOS:
+        errores.append(f"Agregue entre 1 y {MAXIMO_ALUMNOS} hijos.")
+    vistos: set[str] = set()
+    dnis: list[str] = []
+    for indice, alumno in enumerate(alumnos, 1):
+        valores = sincronizar_ficha_vacante(alumno)
+        dni = valores["dni"]
+        dnis.append(dni)
+        if not _dni_valido(dni):
+            errores.append(f"Hijo {indice}: el DNI debe tener 8 dígitos.")
+        elif dni in vistos:
+            errores.append(f"Hijo {indice}: el DNI {dni} está repetido en la solicitud.")
+        vistos.add(dni)
+        for clave, texto in (
+            ("nombres", "nombres"), ("apellido_paterno", "apellido paterno"),
+            ("apellido_materno", "apellido materno"),
+        ):
+            if not valores[clave]:
+                errores.append(f"Hijo {indice}: falta el {texto}.")
+        nacimiento = _fecha(valores["fecha_nacimiento"])
+        if nacimiento is None or nacimiento > date.today():
+            errores.append(f"Hijo {indice}: la fecha de nacimiento no es válida.")
+        destino = alumno.get("destino", {})
+        nivel, grado = destino.get("nivel"), destino.get("grado")
+        if nivel not in NIVELES:
+            errores.append(f"Hijo {indice}: nivel no válido.")
+        elif grado not in NIVELES[nivel]:
+            errores.append(f"Hijo {indice}: grado no válido para {nivel}.")
+        if alumno.get("condicion_declarada") not in ("Nuevo", "Continuador"):
+            errores.append(f"Hijo {indice}: condición declarada no válida.")
+    errores.extend(_errores_duplicados(dnis, anio, str(solicitud.get("id", ""))))
+    return errores
+
+
 def enviar(id_solicitud: str) -> dict[str, Any]:
     """Pasa una solicitud de Borrador/Observada a Enviada tras validarla."""
     sesion = _exigir_padre()
     datos = obtener(id_solicitud)
     _verificar_propietario(datos, sesion)
-    if datos["estado"] not in ("Borrador", "Observada"):
+    if datos["estado"] not in ("Borrador", "Observada", "Vacante aceptada"):
         raise ErrorValidacion(
             f"Una solicitud {datos['estado']} no puede enviarse nuevamente."
         )
-    errores = validar_para_enviar(datos)
+    etapa = etapa_de(datos)
+    # Tras aceptar la vacante el envío ya es de matrícula; en los demás casos
+    # se conserva la etapa (Borrador/Observada de vacante siguen siendo vacante).
+    etapa_destino = "matricula" if datos["estado"] == "Vacante aceptada" else etapa
+    validar_transicion(datos["estado"], "Enviada", etapa, etapa_destino)
+    errores = validar_vacante(datos) if etapa == "vacante" else validar_para_enviar(datos)
     if errores:
         raise ErrorValidacion("No se puede enviar la solicitud:\n- " + "\n- ".join(errores))
     datos["estado"] = "Enviada"
+    datos["etapa"] = etapa_destino
     datos["fecha_envio"] = datetime.now().isoformat(timespec="seconds")
     datos["historial"].append({
         "fecha": datos["fecha_envio"],
@@ -619,7 +859,64 @@ def observar(id_solicitud: str, texto: str, usuario: str | None = None) -> dict[
         "de": usuario or sesion.nombre_usuario,
         "texto": texto,
     })
+    validar_transicion(
+        datos["estado"], "Observada", etapa_de(datos), etapa_de(datos)
+    )
     datos["estado"] = "Observada"
+    guardar_solicitud(datos)
+    return datos
+
+
+def registrar_contacto(
+    id_solicitud: str, texto: str, usuario: str | None = None
+) -> dict[str, Any]:
+    """Deja constancia del contacto con el apoderado sin cambiar el estado."""
+    sesion = _exigir_secretaria()
+    if not str(texto or "").strip():
+        raise ErrorValidacion("Escriba cómo se realizó el contacto.")
+    datos = obtener(id_solicitud)
+    datos.setdefault("observaciones", []).append({
+        "fecha": datetime.now().isoformat(timespec="seconds"),
+        "de": usuario or sesion.nombre_usuario,
+        "texto": "Contactado: " + str(texto).strip(),
+    })
+    datos["historial"].append({
+        "fecha": datetime.now().isoformat(timespec="seconds"),
+        "accion": "Registro de contacto con el apoderado",
+        "usuario": sesion.nombre_usuario,
+    })
+    guardar_solicitud(datos)
+    return datos
+
+
+def aceptar_vacante(
+    id_solicitud: str,
+    indicaciones: str = "",
+    usuario: str | None = None,
+) -> dict[str, Any]:
+    """Acepta una vacante: cambia el JSON, nunca escribe en MySQL ni reserva cupo."""
+    sesion = _exigir_secretaria()
+    datos = obtener(id_solicitud)
+    if etapa_de(datos) != "vacante" or datos["estado"] != "Enviada":
+        raise ErrorValidacion("Solo se puede aceptar una vacante Enviada.")
+    validar_transicion(datos["estado"], "Vacante aceptada", "vacante", "matricula")
+    ahora = datetime.now().isoformat(timespec="seconds")
+    documentos = str(indicaciones or "").strip() or (
+        "Documentos a presentar: DNI de los hijos y del apoderado, y constancia de "
+        "logros cuando corresponda."
+    )
+    datos.setdefault("observaciones", []).append({
+        "fecha": ahora,
+        "de": usuario or sesion.nombre_usuario,
+        "texto": "Vacante aceptada. " + documentos,
+    })
+    datos["historial"].append({
+        "fecha": ahora,
+        "accion": "Vacante aceptada; el padre debe completar la matrícula",
+        "usuario": sesion.nombre_usuario,
+    })
+    datos["estado"] = "Vacante aceptada"
+    datos["etapa"] = "matricula"
     guardar_solicitud(datos)
     return datos
 
@@ -645,8 +942,9 @@ def rechazar(
     if carpeta_solicitud(id_solicitud, "rechazadas").exists():
         raise ErrorConflicto(f"La solicitud {id_solicitud} ya fue rechazada.")
     datos = obtener(id_solicitud)
-    if datos["estado"] not in ("Enviada", "Observada"):
-        raise ErrorValidacion("Solo se puede rechazar una solicitud Enviada u Observada.")
+    validar_transicion(
+        datos["estado"], "Rechazada", etapa_de(datos), etapa_de(datos)
+    )
     datos["estado"] = "Rechazada"
     datos.setdefault("observaciones", []).append({
         "fecha": datetime.now().isoformat(timespec="seconds"),
@@ -718,8 +1016,9 @@ def aprobar(id_solicitud: str, usuario_dni: str | None = None) -> dict[str, Any]
     if carpeta_solicitud(id_solicitud, "aprobadas").exists():
         raise ErrorConflicto(f"La solicitud {id_solicitud} ya fue aprobada.")
     datos = obtener(id_solicitud)
-    if datos["estado"] != "Enviada":
-        raise ErrorValidacion("Solo se puede aprobar una solicitud Enviada.")
+    if etapa_de(datos) != "matricula":
+        raise ErrorValidacion("Solo se puede aprobar una solicitud de la etapa Matrícula.")
+    validar_transicion(datos["estado"], "Aprobada", "matricula", "matricula")
     datos["estado"] = "Aprobada"
     datos["aprobado_por"] = usuario_dni or sesion.dni
     datos["fecha_aprobacion"] = datetime.now().isoformat(timespec="seconds")
@@ -767,7 +1066,7 @@ def adjuntar_documento(
     sin él, registra el DNI del alumno indicado.
     """
     datos = obtener(id_solicitud)
-    if datos["estado"] not in ("Borrador", "Observada"):
+    if datos["estado"] not in ("Borrador", "Observada", "Vacante aceptada"):
         raise ErrorValidacion("Solo se pueden adjuntar documentos a una solicitud editable.")
     ruta = copiar_documento(origen, id_solicitud)
     if tipo == "dni" and indice_padre is not None:

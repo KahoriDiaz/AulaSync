@@ -48,7 +48,7 @@ class TestFase4Solicitudes(unittest.TestCase):
         ))
 
     def _solicitud_lista(self, dni_alumno: str = "91234567", anio: int | None = None):
-        datos = solicitudes.crear_borrador(anio or date.today().year + 1)
+        datos = solicitudes.crear_borrador(anio or date.today().year + 1, etapa="matricula")
         alumno = solicitudes.nuevo_alumno()
         alumno["ficha"].update({
             "DNI": dni_alumno,
@@ -88,7 +88,7 @@ class TestFase4Solicitudes(unittest.TestCase):
 
     # ------------------------------------------------------------- pruebas
     def test_crear_borrador_y_filtro_por_padre(self):
-        datos = solicitudes.crear_borrador()
+        datos = solicitudes.crear_borrador(etapa="matricula")
         self.assertRegex(datos["id"], r"^SOL-\d{4}-\d{4}$")
         self.assertEqual(datos["estado"], "Borrador")
         self.assertEqual(datos["dni_solicitante"], "29481029")
@@ -104,7 +104,7 @@ class TestFase4Solicitudes(unittest.TestCase):
         self.assertEqual(len(solicitudes.listar_solicitudes()), 1)
 
     def test_actualizar_fusiona_y_protege_identidad(self):
-        datos = solicitudes.crear_borrador()
+        datos = solicitudes.crear_borrador(etapa="matricula")
         actualizado = solicitudes.actualizar(datos["id"], {
             "contacto_emergencia": {"nombre": "Rosa"},
             "estado": "Aprobada",
