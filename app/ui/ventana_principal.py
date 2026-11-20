@@ -12,6 +12,7 @@ from tkinter import messagebox, simpledialog, ttk
 
 from app.servicios import auth, estudiantes, padres, instituciones
 from app.ui.componentes import CampoBusqueda, Tabla
+from app.ui.padre.mis_solicitudes import MisSolicitudes
 
 
 class VentanaPrincipal(tk.Tk):
@@ -47,6 +48,12 @@ class VentanaPrincipal(tk.Tk):
             m_reportes = tk.Menu(barra, tearoff=0)
             m_reportes.add_command(label="10 consultas representativas", command=lambda: self.mostrar_pestana("reportes"))
             barra.add_cascade(label="Reportes", menu=m_reportes)
+
+        if rol == "Padre":
+            barra.add_command(
+                label="Mis solicitudes",
+                command=lambda: self.mostrar_pestana("solicitudes"),
+            )
 
         barra.add_command(label="Ayuda", command=self._ayuda)
 
@@ -140,11 +147,8 @@ class VentanaPrincipal(tk.Tk):
     def _pestana_solicitudes(self):
         frame = ttk.Frame(self.notebook)
         self.notebook.add(frame, text="Mis solicitudes")
-        ttk.Label(
-            frame,
-            text="Bandeja de solicitudes (data/solicitudes/pendientes, aprobadas, rechazadas).\n"
-                 "Ver §5 y §6.2.",
-        ).pack(pady=40)
+        frame.contenido = MisSolicitudes(frame)
+        frame.contenido.pack(fill="both", expand=True)
         return frame
 
     def _cargar_pestana_activa(self):
@@ -168,6 +172,8 @@ class VentanaPrincipal(tk.Tk):
                 return clave
             if clave == "instituciones" and texto == "Instituciones Educativas":
                 return clave
+            if clave == "solicitudes" and texto == "Mis solicitudes":
+                return clave
         return None
 
     def mostrar_pestana(self, clave):
@@ -182,6 +188,9 @@ class VentanaPrincipal(tk.Tk):
     def _recargar(self, clave):
         frame = self.pestanas.get(clave)
         if not frame:
+            return
+        if clave == "solicitudes":
+            frame.contenido.recargar()
             return
         servicio = frame.servicio
         filas = servicio.listar_estudiantes() if hasattr(servicio, "listar_estudiantes") else []
