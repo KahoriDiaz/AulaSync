@@ -5,12 +5,35 @@ BarraExportacion: botones Excel / PDF / CSV para listas y reportes.
 """
 from __future__ import annotations
 
+import re
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
 
 from app import errores
 from app.servicios import exportar
+
+DIGITOS = re.compile(r"^[0-9]{0,8}$")
+
+
+def normalizar_dni(texto: object) -> str:
+    """Devuelve solo los dígitos del DNI, recortados a 8 caracteres."""
+    return re.sub(r"[^0-9]", "", str(texto or ""))[:8]
+
+
+def entry_dni(parent, textvariable=None, **kwargs) -> ttk.Entry:
+    """Entrada que solo permite escribir o pegar hasta 8 dígitos."""
+    variable = textvariable if textvariable is not None else tk.StringVar()
+    control = ttk.Entry(parent, textvariable=variable, **kwargs)
+
+    def validar(propuesto: str) -> bool:
+        return bool(DIGITOS.fullmatch(propuesto))
+
+    control.configure(
+        validate="key",
+        validatecommand=(control.register(validar), "%P"),
+    )
+    return control
 
 
 class Tabla(ttk.Frame):

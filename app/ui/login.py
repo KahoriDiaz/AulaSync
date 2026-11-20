@@ -14,6 +14,7 @@ from tkinter import messagebox, ttk
 
 from app.errores import ErrorApp
 from app.servicios import auth
+from app.ui.componentes import entry_dni
 
 
 class DialogoCrearCuenta(tk.Toplevel):
@@ -46,7 +47,8 @@ class DialogoCrearCuenta(tk.Toplevel):
         )
         for clave, texto in etiquetas:
             ttk.Label(marco, text=texto).pack(anchor="w")
-            entry = ttk.Entry(marco, width=34)
+            fabrica = entry_dni if clave == "dni" else ttk.Entry
+            entry = fabrica(marco, width=34)
             entry.pack(fill="x", pady=(0, 8))
             self.campos[clave] = entry
 

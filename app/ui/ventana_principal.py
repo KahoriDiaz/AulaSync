@@ -11,13 +11,21 @@ import tkinter as tk
 from tkinter import messagebox, simpledialog, ttk
 
 from app.servicios import auth, estudiantes, padres, instituciones
-from app.ui.componentes import CampoBusqueda, Tabla
+from app.ui.componentes import CampoBusqueda, Tabla, normalizar_dni
 from app.ui.padre.mis_solicitudes import MisSolicitudes
 from app.ui.padre.solicitar_vacante import SolicitarVacante
 from app.ui.secretaria.bandeja import BandejaSolicitudes
 from app.ui.secretaria.distribucion import Distribucion
 from app.ui.secretaria.listas import Listas
 from app.ui.secretaria.reportes import Reportes
+
+
+def _limitar_dnis(campos: list[str], parametros: list[str]) -> list[str]:
+    """Recorta los campos de DNI aunque vengan de un diálogo de texto libre."""
+    for indice, campo in enumerate(campos):
+        if campo in ("DNI", "DNI_Apoderado") and indice < len(parametros):
+            parametros[indice] = normalizar_dni(parametros[indice])
+    return parametros
 
 
 class VentanaPrincipal(tk.Tk):
@@ -263,7 +271,7 @@ class VentanaPrincipal(tk.Tk):
         )
         if not valores:
             return
-        parametros = [v.strip() for v in valores.split(",")]
+        parametros = _limitar_dnis(campos_alta, [v.strip() for v in valores.split(",")])
         try:
             servicio.insertar_estudiante(parametros) if clave == "estudiantes" else (
                 servicio.insertar_padre(parametros) if clave == "padres" else servicio.insertar_institucion(parametros)
@@ -286,7 +294,7 @@ class VentanaPrincipal(tk.Tk):
         )
         if not valores:
             return
-        parametros = [v.strip() for v in valores.split(",")]
+        parametros = _limitar_dnis(campos_alta, [v.strip() for v in valores.split(",")])
         try:
             servicio.actualizar_estudiante(parametros) if clave == "estudiantes" else (
                 servicio.actualizar_padre(parametros) if clave == "padres" else servicio.actualizar_institucion(parametros)

@@ -130,6 +130,34 @@ class TestDatosDemo(unittest.TestCase):
         self.assertNotIn("'datos_demo'", fuente)
 
 
+class TestEntradaDni(unittest.TestCase):
+    def test_componente_solo_acepta_hasta_8_digitos(self) -> None:
+        fuente = _leer("app/ui/componentes.py")
+        for fragmento in (
+            r"[0-9]{0,8}", 'validate="key"', '"%P"', "def normalizar_dni",
+            "def entry_dni",
+        ):
+            with self.subTest(fragmento=fragmento):
+                self.assertIn(fragmento, fuente)
+
+    def test_formularios_de_dni_usan_el_componente(self) -> None:
+        for relativo in (
+            "app/ui/login.py",
+            "app/ui/padre/solicitar_vacante.py",
+            "app/ui/padre/asistente_solicitud.py",
+        ):
+            with self.subTest(relativo=relativo):
+                self.assertIn("entry_dni", _leer(relativo))
+
+    def test_dialogos_de_texto_tambien_recortan_el_dni(self) -> None:
+        principal = _leer("app/ui/ventana_principal.py")
+        asistente = _leer("app/ui/padre/asistente_solicitud.py")
+        self.assertIn("_limitar_dnis", principal)
+        self.assertIn("normalizar_dni", principal)
+        self.assertIn("normalizar_dni(", asistente)
+        self.assertIn("El DNI debe tener 8 dígitos", asistente)
+
+
 class TestDocumentacionEntrega(unittest.TestCase):
     def test_documentos_del_nuevo_flujo_existen(self) -> None:
         for relativo in (

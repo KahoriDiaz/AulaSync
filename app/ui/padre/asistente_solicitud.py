@@ -11,6 +11,7 @@ from tkinter import filedialog, messagebox, simpledialog, ttk
 
 from app import errores
 from app.servicios import solicitudes
+from app.ui.componentes import entry_dni, normalizar_dni
 from ocr import extraer_constancia, extraer_dni, extraer_lineas, tesseract_disponible
 
 CAMPOS_ALUMNO = (
@@ -156,6 +157,8 @@ class AsistenteSolicitud(tk.Toplevel):
         variable = tk.StringVar(value="" if valor is None else str(valor))
         if tipo in OPCIONES or tipo == "grado":
             control = ttk.Combobox(fila, textvariable=variable, values=OPCIONES.get(tipo, ()), state="readonly")
+        elif etiqueta == "DNI":
+            control = entry_dni(fila, textvariable=variable)
         else:
             control = ttk.Entry(fila, textvariable=variable)
         control.pack(side="left", fill="x", expand=True)
@@ -253,15 +256,20 @@ class AsistenteSolicitud(tk.Toplevel):
 
     def agregar_alumno(self) -> None:
         """Agrega un hermano pidiendo el DNI y los datos mínimos de destino."""
-        dni = simpledialog.askstring("Nuevo alumno", "DNI del alumno (8 dígitos):", parent=self)
+        dni = normalizar_dni(
+            simpledialog.askstring("Nuevo alumno", "DNI del alumno (8 dígitos):", parent=self)
+        )
         if not dni:
+            return
+        if len(dni) != 8:
+            messagebox.showwarning("DNI inválido", "El DNI debe tener 8 dígitos.", parent=self)
             return
         try:
             alumno = solicitudes.agregar_alumno(self.datos)
         except errores.ErrorApp as exc:
             messagebox.showerror("Error", str(exc), parent=self)
             return
-        alumno["ficha"]["DNI"] = dni.strip()
+        alumno["ficha"]["DNI"] = dni
         self._refrescar_alumnos()
         self._refrescar_fichas_alumnos()
 

@@ -13,6 +13,7 @@ from tkinter import messagebox, ttk
 
 from app import errores
 from app.servicios import solicitudes as sol, vacantes
+from app.ui.componentes import entry_dni
 
 COLUMNAS = ("DNI", "Nombres", "Apellidos", "Nacimiento", "Nivel", "Grado", "Condición")
 AVISO = (
@@ -49,7 +50,8 @@ class DialogoHijo(tk.Toplevel):
         for fila, (clave, texto) in enumerate(campos):
             ttk.Label(marco, text=texto).grid(row=fila, column=0, sticky="w", pady=3)
             variable = tk.StringVar()
-            ttk.Entry(marco, textvariable=variable, width=26).grid(row=fila, column=1)
+            fabrica = entry_dni if clave == "dni" else ttk.Entry
+            fabrica(marco, textvariable=variable, width=26).grid(row=fila, column=1)
             self.vars[clave] = variable
 
         ttk.Label(marco, text="Nivel").grid(row=5, column=0, sticky="w", pady=3)
