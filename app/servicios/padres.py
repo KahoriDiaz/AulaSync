@@ -1,7 +1,7 @@
 """Servicio de padres/apoderados para la secretaria (§6.3 punto 4).
 
 Todas las escrituras usan CALL sp_padre_* ; las lecturas usan SELECT.
-Nunca INSERT / UPDATE / DELETE en Python.
+Nunca se escriben sentencias de modificación directa en Python.
 """
 from __future__ import annotations
 

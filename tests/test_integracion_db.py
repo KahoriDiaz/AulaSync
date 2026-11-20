@@ -147,7 +147,7 @@ class TestIntegracionBD(unittest.TestCase):
         self.assertGreaterEqual(len(filas), 1)
 
     def test_no_hay_dml_en_codigo_python(self):
-        """Regex sin distincion de mayusculas sobre app/*.prohibe INSERT/UPDATE/DELETE."""
+        """La aplicacion solo usa SELECT y CALL; prohibe DML directo en app/."""
         patrones = [
             re.compile(r"\bINSERT\s+INTO\b", re.IGNORECASE),
             re.compile(r"\bUPDATE\s+\w+\s+SET\b", re.IGNORECASE),

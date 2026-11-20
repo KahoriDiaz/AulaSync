@@ -31,6 +31,8 @@ copy /y "config.ini.example" "dist\MatriculaApp\config.ini.example" >nul
 copy /y "LEEME.txt" "dist\MatriculaApp\LEEME.txt" >nul
 for %%D in (pendientes aprobadas rechazadas) do (
     if not exist "dist\MatriculaApp\data\solicitudes\%%D" mkdir "dist\MatriculaApp\data\solicitudes\%%D"
+    rem Los ejemplos viven fuera de la bandeja real para no distribuir datos del desarrollador.
+    if exist "datos_demo\solicitudes\%%D\*.json" xcopy /e /i /y "datos_demo\solicitudes\%%D" "dist\MatriculaApp\data\solicitudes\%%D" >nul
 )
 if not exist "dist\MatriculaApp\data\perfiles" mkdir "dist\MatriculaApp\data\perfiles"
 

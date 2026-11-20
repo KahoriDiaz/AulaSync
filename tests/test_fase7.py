@@ -57,6 +57,7 @@ class TestBuild(unittest.TestCase):
             'copy /y "config.ini.example"',
             "data\\solicitudes",
             "data\\perfiles",
+            "datos_demo\\solicitudes",
         ):
             with self.subTest(fragmento=fragmento):
                 self.assertIn(fragmento, contenido)

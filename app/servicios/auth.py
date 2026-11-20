@@ -5,7 +5,7 @@
 - Registro de acceso (sp_usuario_registrar_acceso).
 - Usuarios Inactivos no pueden entrar.
 - Bloqueo temporal en memoria tras 5 intentos fallidos (30 s).
-Todo el acceso a datos usa SELECT y CALL sp_... (sin INSERT/UPDATE/DELETE en Python).
+Todo el acceso a datos usa SELECT y CALL sp_... (sin escrituras directas en Python).
 """
 from __future__ import annotations
 

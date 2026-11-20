@@ -1,0 +1,89 @@
+{
+  "id": "SOL-2027-0007",
+  "anio": 2027,
+  "etapa": "matricula",
+  "estado": "Aprobada",
+  "dni_solicitante": "29481029",
+  "contacto": {
+    "nombres_apoderado": "MARIA ACOSTA DEMO",
+    "celular": "987654321",
+    "correo": "padre.demo@example.com"
+  },
+  "fecha_creacion": "2026-11-14T16:58:26",
+  "fecha_envio": "2026-11-14T16:58:26",
+  "padres": [],
+  "dni_responsable": "29481029",
+  "dni_apoderado": "29481029",
+  "contacto_emergencia": {
+    "nombre": "MARIA ACOSTA DEMO",
+    "celular": "987654321"
+  },
+  "alumnos": [
+    {
+      "ficha": {
+        "DNI": "99990008",
+        "Sexo": "F",
+        "Nombres": "CAMILA",
+        "ApellidoPaterno": "SOTO",
+        "ApellidoMaterno": "DEMO",
+        "FechaNacimiento": "2015-05-10",
+        "DistritoNacimiento": "CERCADO",
+        "ProvinciaNacimiento": "AREQUIPA",
+        "DepartamentoNacimiento": "AREQUIPA",
+        "PaisNacimiento": "PERU",
+        "DomicilioActual": "AV. DEMO 123",
+        "DistritoDomicilio": "CERCADO",
+        "Celular": "987654321",
+        "CorreoElectronico": "demo@example.com",
+        "Religion": "",
+        "LugarQueOcupa": 1,
+        "TipoAtencion": "",
+        "EnfermedadCronica": "",
+        "ViveConPadre": true,
+        "ViveConMadre": true,
+        "ElPadreVive": true,
+        "LaMadreVive": true
+      },
+      "nee": [],
+      "hermanos_ie": [],
+      "ie_procedencia": {
+        "codigo_modular": "",
+        "nombre": "",
+        "tipo": ""
+      },
+      "destino": {
+        "nivel": "Primaria",
+        "grado": "4.°"
+      },
+      "constancia": {
+        "codigo_virtual": "",
+        "nivel_educativo": "",
+        "fecha_hora_emision": "",
+        "codigo_modular_ie": "",
+        "nombre_ie": "",
+        "tipo_ie": "",
+        "logros": [],
+        "sin_constancia": true
+      },
+      "docs": {
+        "dni": "",
+        "constancia": ""
+      },
+      "verificacion": {
+        "estado": "Pendiente",
+        "verificado_por": null
+      },
+      "condicion_declarada": "Continuador"
+    }
+  ],
+  "observaciones": [],
+  "historial": [
+    {
+      "fecha": "2026-11-14T16:58:26",
+      "accion": "Demo: solicitud de matricula en estado Aprobada",
+      "usuario": "29481029"
+    }
+  ],
+  "aprobado_por": "87733221",
+  "fecha_aprobacion": "2026-11-19T16:58:26"
+}

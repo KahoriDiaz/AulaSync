@@ -1,6 +1,6 @@
 """Acceso a datos: conexion MySQL, consultas SELECT y llamadas CALL a procedimientos.
 
-El codigo Python NO contiene sentencias INSERT / UPDATE / DELETE: solo se usa
+El codigo Python no ejecuta escrituras directas: solo se usa
 CALL sp_... (a traves de call_proc) y SELECT (a traves de query).
 """
 from __future__ import annotations

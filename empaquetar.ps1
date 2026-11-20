@@ -18,6 +18,18 @@ try {
     New-Item -ItemType Directory -Path $app -Force | Out-Null
     Copy-Item -Path (Join-Path $raiz 'dist\MatriculaApp\*') -Destination $app -Recurse -Force
 
+    # Limpieza: nunca distribuir credenciales ni datos generados por el desarrollador.
+    Remove-Item (Join-Path $app 'config.ini') -Force -ErrorAction SilentlyContinue
+    $bandeja = Join-Path $app 'data\solicitudes'
+    if (Test-Path $bandeja) { Remove-Item $bandeja -Recurse -Force }
+    New-Item -ItemType Directory -Path $bandeja -Force | Out-Null
+    Copy-Item -Path (Join-Path $raiz 'datos_demo\solicitudes\*') -Destination $bandeja -Recurse -Force
+    $perfiles = Join-Path $app 'data\perfiles'
+    if (Test-Path $perfiles) {
+        Get-ChildItem $perfiles -Filter '*.json' -ErrorAction SilentlyContinue |
+            Remove-Item -Force -ErrorAction SilentlyContinue
+    }
+
     # 2) Codigo fuente documentado, sin entornos ni artefactos de compilacion.
     $fuente = Join-Path $tmp 'codigo_fuente'
     New-Item -ItemType Directory -Path $fuente -Force | Out-Null

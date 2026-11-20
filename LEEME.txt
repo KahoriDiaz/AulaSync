@@ -26,8 +26,31 @@ Ejecución del entregable
    padre_demo     padre123          Padre
 
 6. Desde la cuenta secretaria revisar: Mantenimiento, Distribución, Listas y
-   comparación, Reportes (10 consultas, 6 con JOIN, exportación Excel/PDF/CSV)
-   y la Bandeja de solicitudes. Desde padre_demo, "Mis solicitudes".
+   comparación, Reportes (10 consultas, 6 con JOIN, exportación Excel/PDF/CSV),
+   "Bandeja de solicitudes" y "Vacantes por atender". Desde padre_demo,
+   "Mis solicitudes" y "Solicitar vacante".
+
+Flujo en dos etapas (nuevo)
+---------------------------
+1. El padre solicita una vacante con un formulario corto: contacto, hijos
+   (máximo 6 hermanos) y nivel/grado deseado. La disponibilidad es referencial:
+   se puede enviar aunque diga "Sin vacantes".
+2. La secretaria revisa la vacante: distingue alumno nuevo de anterior, ve la
+   última matrícula, el grado sugerido y las vacantes por sección (30 menos
+   matriculados). Puede copiar el contacto, registrar la llamada, observar o
+   rechazar. Las solicitudes sin respuesta por más de 7 días aparecen resaltadas.
+3. Al aceptar la vacante solo cambia el JSON y se agrega la observación con los
+   documentos a presentar. No se reserva cupo ni se escribe en MySQL.
+4. Recién entonces el padre ve "Completar matrícula": se abre el asistente de
+   5 pasos con nivel y grado precargados y bloqueados, y el envío queda como
+   "Enviada" en la etapa Matrícula.
+5. La aprobación de la secretaria ejecuta una única transacción en MySQL y
+   mueve la carpeta a aprobadas/.
+
+Los estados son: Borrador → Enviada → Vacante aceptada → Enviada →
+(Observada ↔ Enviada) → Aprobada. Rechazada es posible desde cualquier etapa.
+Los detalles y las decisiones de diseño están en
+documentos/DISENO_FLUJO.md (incluido en el ZIP).
 
 Archivos junto al ejecutable (fuera del .exe)
 ---------------------------------------------
@@ -38,17 +61,28 @@ MatriculaApp/
 ├─ tesseract/                 (opcional: tesseract.exe + tessdata/spa.traineddata)
 ├─ config.ini.example         (plantilla; copiar como config.ini si hace falta)
 ├─ config.ini                 (se crea solo; NO distribuir con claves reales)
-├─ data/solicitudes/          (pendientes/, aprobadas/, rechazadas/)
+├─ data/solicitudes/          (pendientes/, aprobadas/, rechazadas/ con ejemplos)
+├─ data/perfiles/             (perfiles de cuentas creadas desde el login)
 └─ LEEME.txt
 
 Estructura del ZIP
 ------------------
 Entrega5_GrupoXX.zip
 ├─ MatriculaApp/     (exe + dependencias + sql/ + tesseract/ opcional)
-├─ codigo_fuente/    (todo el proyecto documentado)
+├─ codigo_fuente/    (todo el proyecto documentado, incluye datos_demo/)
 ├─ script_bd/        (los .sql 01 a 06)
-├─ documentos/       (informe, memoria descriptiva, manual de usuario)
+├─ documentos/       (informe, memoria, manual, diseño del flujo y capturas)
 └─ LEEME.txt
+
+Datos demo incluidos
+--------------------
+Se distribuyen 9 solicitudes ficticias en datos_demo/solicitudes/ y build.bat
+las copia dentro de MatriculaApp/data/solicitudes/. Cubren Borrador, Enviada,
+Observada, Vacante aceptada, Aprobada y Rechazada en ambas etapas. Los DNI son
+ficticios y el padre de la mayoría de los ejemplos es padre_demo (29481029).
+Antes de comprimir, empaquetar.ps1 elimina config.ini y los perfiles *.json, y
+reemplaza data/solicitudes por los ejemplos para no distribuir datos reales.
+Capturas pendientes: se enumeran en documentos/CAPTURAS.md.
 
 Aviso sobre antivirus
 ---------------------
@@ -77,5 +111,9 @@ En PowerShell los .bat de la carpeta actual se invocan con ./ delante:
   .\empaquetar.bat
 No hace falta tener pyinstaller.exe en el PATH: build.bat usa python -m PyInstaller.
 
-Pruebas (desarrollo):
-python -m unittest tests.test_fase4 tests.test_fase5 tests.test_fase6 tests.test_fase7 tests.test_ocr
+Pruebas (desarrollo, sin MySQL):
+python -m unittest tests.test_fase_a tests.test_fase_b tests.test_fase_d
+python -m unittest tests.test_fase4 tests.test_fase5 tests.test_fase6 tests.test_fase7 tests.test_fase_e tests.test_interfaz tests.test_ocr
+
+Con MySQL 8.0 cargado se pueden ejecutar además:
+python -m unittest tests.test_sql tests.test_integracion_db
