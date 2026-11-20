@@ -88,6 +88,14 @@ class AsistenteSolicitud(tk.Toplevel):
             messagebox.showerror("Error", str(exc), parent=self)
             self.destroy()
             return
+        if solicitudes.etapa_de(self.datos) == "vacante":
+            messagebox.showwarning(
+                "Atención",
+                "Primero debe solicitar una vacante y esperar a que la secretaria la acepte.",
+                parent=self,
+            )
+            self.destroy()
+            return
 
         self.anio_var = tk.StringVar()
         self.nivel_var = tk.StringVar()
