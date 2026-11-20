@@ -18,7 +18,7 @@ class Configuracion:
         self.db_port = int(os.getenv("DB_PORT", "3306"))
         self.db_user = os.getenv("DB_USER", "matricula_app")
         self.db_password = os.getenv("DB_PASSWORD", "")
-        self.db_name = os.getenv("DB_NAME", "bd_matricula_paola_frassinetti")
+        self.db_name = os.getenv("DB_NAME", "bd_matricula")
         self._data_dir = os.getenv("DATA_DIR", "almacen/solicitudes")
 
     @property

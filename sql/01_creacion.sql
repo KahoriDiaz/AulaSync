@@ -1,12 +1,12 @@
 -- ============================================================
--- Script de creación de la base de datos bd_matricula_paola_frassinetti
+-- Script de creación de la base de datos bd_matricula
 -- Motor: MySQL 8.0 (InnoDB)
 -- ============================================================
 
-CREATE DATABASE IF NOT EXISTS bd_matricula_paola_frassinetti
+CREATE DATABASE IF NOT EXISTS bd_matricula
     CHARACTER SET utf8mb4
     COLLATE utf8mb4_unicode_ci;
-USE bd_matricula_paola_frassinetti;
+USE bd_matricula;
 
 -- Tabla CONTACTO_EMERGENCIA (se crea primero por ser referenciada)
 CREATE TABLE CONTACTO_EMERGENCIA (

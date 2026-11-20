@@ -1,4 +1,4 @@
-USE bd_matricula_paola_frassinetti;
+USE bd_matricula;
 
 -- ============================================================
 -- Tabla de soporte USUARIO (inicio de sesión del aplicativo)

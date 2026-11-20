@@ -1,4 +1,4 @@
-"""Acceso a MySQL: conexión, consultas parametrizadas, transacciones y procedimientos."""
+"""Acceso a MySQL: conexión, consultas SELECT y llamadas a procedimientos CALL."""
 from __future__ import annotations
 
 from contextlib import contextmanager
@@ -20,6 +20,7 @@ def conectar() -> mysql.connector.MySQLConnection:
             database=config.db_name,
             charset="utf8mb4",
             use_unicode=True,
+            use_pure=True,
             autocommit=False,
         )
     except mysql.connector.Error as exc:
@@ -52,38 +53,6 @@ def consultar(sql: str, parametros: Sequence[Any] = ()) -> list[dict[str, Any]]:
 def consultar_uno(sql: str, parametros: Sequence[Any] = ()) -> dict[str, Any] | None:
     filas = consultar(sql, parametros)
     return filas[0] if filas else None
-
-
-def ejecutar(sql: str, parametros: Sequence[Any] = ()) -> int:
-    """Ejecuta un INSERT/UPDATE/DELETE y confirma. Devuelve lastrowid."""
-    cnx = conectar()
-    cursor = cnx.cursor()
-    try:
-        cursor.execute(sql, tuple(parametros))
-        cnx.commit()
-        return int(cursor.lastrowid or 0)
-    except Exception as exc:
-        cnx.rollback()
-        raise _envolver(exc) from exc
-    finally:
-        cursor.close()
-        cnx.close()
-
-
-def ejecutar_filas(sql: str, parametros: Sequence[Any] = ()) -> int:
-    """Ejecuta una modificación y devuelve la cantidad de filas afectadas."""
-    cnx = conectar()
-    cursor = cnx.cursor()
-    try:
-        cursor.execute(sql, tuple(parametros))
-        cnx.commit()
-        return int(cursor.rowcount or 0)
-    except Exception as exc:
-        cnx.rollback()
-        raise _envolver(exc) from exc
-    finally:
-        cursor.close()
-        cnx.close()
 
 
 @contextmanager

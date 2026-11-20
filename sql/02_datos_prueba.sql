@@ -1,4 +1,4 @@
-USE bd_matricula_paola_frassinetti;
+USE bd_matricula;
 
 -- ============================================================
 -- Script de inserción de datos de prueba
