@@ -8,6 +8,7 @@ from tkinter import messagebox, ttk
 import mysql.connector
 
 from app import db
+from app.ui.tema import EXITO, PELIGRO, aplicar_tema, separador, tarjeta
 from app.config import config
 from app.setup_bd import (
     APP_USER,
@@ -19,55 +20,77 @@ from app.setup_bd import (
 class AsistenteConexion(tk.Tk):
     def __init__(self) -> None:
         super().__init__()
+        aplicar_tema(self)
         self.title("AulaSync - Asistente de conexión")
         self.resizable(False, False)
         self._construir_ui()
 
     def _construir_ui(self) -> None:
-        marco = ttk.Frame(self, padding=20)
+        marco = ttk.Frame(self, padding=18)
         marco.grid(row=0, column=0, sticky="nsew")
 
-        ttk.Label(marco, text="Servidor MySQL").grid(row=0, column=0, sticky="w", pady=3)
-        self.ent_host = ttk.Entry(marco)
+        ttk.Label(marco, text="AulaSync", style="Titulo.TLabel").pack(anchor="w", pady=(0, 8))
+        separador(marco).pack(fill="x", pady=(0, 12))
+
+        tarjeta_datos = tarjeta(marco)
+        tarjeta_datos.pack(fill="x")
+        ttk.Label(
+            tarjeta_datos, text="Conexión a MySQL", style="Card.Seccion.TLabel"
+        ).grid(row=0, column=0, columnspan=2, sticky="w", pady=(0, 8))
+
+        ttk.Label(tarjeta_datos, text="Servidor MySQL", style="Card.TLabel").grid(
+            row=1, column=0, sticky="w", pady=3
+        )
+        self.ent_host = ttk.Entry(tarjeta_datos)
         self.ent_host.insert(0, config.host)
-        self.ent_host.grid(row=0, column=1, pady=3, sticky="ew")
+        self.ent_host.grid(row=1, column=1, pady=3, sticky="ew")
 
-        ttk.Label(marco, text="Puerto").grid(row=1, column=0, sticky="w", pady=3)
-        self.ent_port = ttk.Entry(marco, width=10)
-        self.ent_port.insert(0, str(config.port))
-        self.ent_port.grid(row=1, column=1, pady=3, sticky="w")
-
-        ttk.Label(marco, text="Usuario administrador (ej. root)").grid(
+        ttk.Label(tarjeta_datos, text="Puerto", style="Card.TLabel").grid(
             row=2, column=0, sticky="w", pady=3
         )
-        self.ent_root_user = ttk.Entry(marco)
+        self.ent_port = ttk.Entry(tarjeta_datos, width=10)
+        self.ent_port.insert(0, str(config.port))
+        self.ent_port.grid(row=2, column=1, pady=3, sticky="w")
+
+        ttk.Label(
+            tarjeta_datos, text="Usuario administrador (ej. root)", style="Card.TLabel"
+        ).grid(row=3, column=0, sticky="w", pady=3)
+        self.ent_root_user = ttk.Entry(tarjeta_datos)
         self.ent_root_user.insert(0, "root")
-        self.ent_root_user.grid(row=2, column=1, pady=3, sticky="ew")
+        self.ent_root_user.grid(row=3, column=1, pady=3, sticky="ew")
 
-        ttk.Label(marco, text="Clave del administrador").grid(row=3, column=0, sticky="w", pady=3)
-        self.ent_root_pass = ttk.Entry(marco, show="*")
-        self.ent_root_pass.grid(row=3, column=1, pady=3, sticky="ew")
+        ttk.Label(
+            tarjeta_datos, text="Clave del administrador", style="Card.TLabel"
+        ).grid(row=4, column=0, sticky="w", pady=3)
+        self.ent_root_pass = ttk.Entry(tarjeta_datos, show="*")
+        self.ent_root_pass.grid(row=4, column=1, pady=3, sticky="ew")
 
-        ttk.Separator(marco, orient="horizontal").grid(
-            row=4, column=0, columnspan=2, sticky="ew", pady=12
-        )
+        tarjeta_acciones = tarjeta(marco)
+        tarjeta_acciones.pack(fill="x", pady=(12, 0))
+        ttk.Label(
+            tarjeta_acciones, text="Preparar el entorno", style="Card.Seccion.TLabel"
+        ).pack(anchor="w", pady=(0, 8))
 
         self.btn_probar = ttk.Button(
-            marco, text="Probar conexion", command=self.probar_conexion
+            tarjeta_acciones, text="Probar conexión", command=self.probar_conexion
         )
-        self.btn_probar.grid(row=5, column=0, columnspan=2, pady=6, sticky="ew")
+        self.btn_probar.pack(fill="x", pady=4)
 
         self.btn_crear = ttk.Button(
-            marco,
+            tarjeta_acciones,
             text="Crear base de datos y cargar datos de prueba",
+            style="Accent.TButton",
             command=self.crear_y_cargar,
         )
-        self.btn_crear.grid(row=6, column=0, columnspan=2, pady=6, sticky="ew")
+        self.btn_crear.pack(fill="x", pady=4)
 
-        self.lbl_estado = ttk.Label(marco, text="", foreground="#1a7a1a")
-        self.lbl_estado.grid(row=7, column=0, columnspan=2, pady=10)
+        self.lbl_estado = ttk.Label(
+            tarjeta_acciones, text="", foreground=EXITO, style="Card.Muted.TLabel",
+            wraplength=360,
+        )
+        self.lbl_estado.pack(fill="x", pady=(8, 0))
 
-        marco.columnconfigure(1, weight=1)
+        tarjeta_datos.columnconfigure(1, weight=1)
 
     def _credenciales_root(self) -> tuple[str, int, str, str]:
         return (
@@ -108,12 +131,12 @@ class AsistenteConexion(tk.Tk):
                 except Exception:
                     msg += " | (bd_matricula no creada aún)"
                 cur.close()
-                self.lbl_estado.config(text=msg, foreground="#1a7a1a")
+                self.lbl_estado.config(text=msg, foreground=EXITO)
                 messagebox.showinfo("Conexion", msg)
             finally:
                 root_cnx.close()
         except Exception as exc:
-            self.lbl_estado.config(text=f"Error: {exc}", foreground="#a31a1a")
+            self.lbl_estado.config(text=f"Error: {exc}", foreground=PELIGRO)
             messagebox.showerror("Error de conexion", str(exc))
 
     def crear_y_cargar(self) -> None:
@@ -140,7 +163,7 @@ class AsistenteConexion(tk.Tk):
             )
             self.lbl_estado.config(
                 text="Base de datos creada y cargada. config.ini guardado.",
-                foreground="#1a7a1a",
+                foreground=EXITO,
             )
             messagebox.showinfo(
                 "Listo",
@@ -149,7 +172,7 @@ class AsistenteConexion(tk.Tk):
             )
             self.destroy()
         except Exception as exc:
-            self.lbl_estado.config(text=f"Error: {exc}", foreground="#a31a1a")
+            self.lbl_estado.config(text=f"Error: {exc}", foreground=PELIGRO)
             messagebox.showerror("Error", str(exc))
 
 

@@ -12,6 +12,7 @@ from tkinter import messagebox, simpledialog, ttk
 
 from app.servicios import auth, estudiantes, padres, instituciones
 from app.ui.componentes import CampoBusqueda, Tabla, normalizar_dni
+from app.ui.tema import aplicar_tema, cabecera
 from app.ui.padre.mis_solicitudes import MisSolicitudes
 from app.ui.padre.solicitar_vacante import SolicitarVacante
 from app.ui.secretaria.bandeja import BandejaSolicitudes
@@ -31,12 +32,14 @@ def _limitar_dnis(campos: list[str], parametros: list[str]) -> list[str]:
 class VentanaPrincipal(tk.Tk):
     def __init__(self):
         super().__init__()
+        aplicar_tema(self)
         sesion = auth.sesion_actual()
         rol = sesion.rol if sesion else ""
         titulo = "Bandeja de solicitudes" if rol == "Secretaria" else "Mis solicitudes"
         self.title(f"AulaSync - {titulo}")
         self.geometry("1000x600")
         self._construir_menu()
+        cabecera(self, "AulaSync", rol).pack(fill="x")
         self._construir_contenido()
         self._cargar_pestana_activa()
 
@@ -95,7 +98,7 @@ class VentanaPrincipal(tk.Tk):
     # ---------------------------------------------------------------- contenido
     def _construir_contenido(self):
         self.notebook = ttk.Notebook(self)
-        self.notebook.pack(fill="both", expand=True)
+        self.notebook.pack(fill="both", expand=True, padx=8, pady=(4, 8))
 
         self.pestanas = {}
         self.pestanas["estudiantes"] = self._pestana_crud(
@@ -146,7 +149,7 @@ class VentanaPrincipal(tk.Tk):
         marco_botonera.pack(fill="x", padx=5, pady=4)
 
         ttk.Button(
-            marco_botonera, text="Nuevo",
+            marco_botonera, text="Nuevo", style="Primary.TButton",
             command=lambda: self._nuevo(clave, servicio, campos_alta),
         ).pack(side="left", padx=3)
         ttk.Button(
@@ -154,7 +157,7 @@ class VentanaPrincipal(tk.Tk):
             command=lambda: self._editar(clave, servicio, campos_alta),
         ).pack(side="left", padx=3)
         ttk.Button(
-            marco_botonera, text="Eliminar",
+            marco_botonera, text="Eliminar", style="Danger.TButton",
             command=lambda: self._eliminar(clave, servicio),
         ).pack(side="left", padx=3)
 
@@ -348,7 +351,7 @@ class VentanaPrincipal(tk.Tk):
 
     def _ayuda(self):
         messagebox.showinfo(
-            "Ayuda",
+            "AulaSync - Ayuda",
             "AulaSync - Entrega 5\n"
             "Aplicativo de escritorio sin frameworks (tkinter + mysql-connector).\n"
             "Usuarios demo: secretaria / secretaria123  |  padre_demo / padre123",

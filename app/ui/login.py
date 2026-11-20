@@ -15,6 +15,7 @@ from tkinter import messagebox, ttk
 from app.errores import ErrorApp
 from app.servicios import auth
 from app.ui.componentes import entry_dni
+from app.ui.tema import EXITO, INFO, PELIGRO, aplicar_tema, separador, tarjeta
 
 
 class DialogoCrearCuenta(tk.Toplevel):
@@ -22,6 +23,7 @@ class DialogoCrearCuenta(tk.Toplevel):
 
     def __init__(self, parent, al_crear):
         super().__init__(parent)
+        aplicar_tema(self)
         self.title("AulaSync - Crear cuenta de padre/apoderado")
         self.resizable(False, False)
         self.al_crear = al_crear
@@ -33,9 +35,12 @@ class DialogoCrearCuenta(tk.Toplevel):
         marco = ttk.Frame(self, padding=18)
         marco.pack(fill="both", expand=True)
 
+        tarjeta_formulario = tarjeta(marco)
+        tarjeta_formulario.pack(fill="both", expand=True)
         ttk.Label(
-            marco, text="Datos del apoderado", font=("Segoe UI", 11, "bold")
-        ).pack(anchor="w", pady=(0, 8))
+            tarjeta_formulario, text="Datos del apoderado", style="Card.Seccion.TLabel"
+        ).pack(anchor="w", pady=(0, 6))
+        separador(tarjeta_formulario).pack(fill="x", pady=(0, 12))
 
         self.campos: dict[str, ttk.Entry] = {}
         etiquetas = (
@@ -46,29 +51,33 @@ class DialogoCrearCuenta(tk.Toplevel):
             ("usuario", "Usuario"),
         )
         for clave, texto in etiquetas:
-            ttk.Label(marco, text=texto).pack(anchor="w")
+            ttk.Label(tarjeta_formulario, text=texto, style="Card.TLabel").pack(anchor="w")
             fabrica = entry_dni if clave == "dni" else ttk.Entry
-            entry = fabrica(marco, width=34)
-            entry.pack(fill="x", pady=(0, 8))
+            entry = fabrica(tarjeta_formulario, width=34)
+            entry.pack(fill="x", pady=(2, 8))
             self.campos[clave] = entry
 
-        ttk.Label(marco, text="Clave (mín. 8, letra y número)").pack(anchor="w")
-        self.ent_clave = ttk.Entry(marco, width=34, show="*")
-        self.ent_clave.pack(fill="x", pady=(0, 8))
+        ttk.Label(
+            tarjeta_formulario, text="Clave (mín. 8, letra y número)", style="Card.TLabel"
+        ).pack(anchor="w")
+        self.ent_clave = ttk.Entry(tarjeta_formulario, width=34, show="*")
+        self.ent_clave.pack(fill="x", pady=(2, 8))
 
-        ttk.Label(marco, text="Confirmar clave").pack(anchor="w")
-        self.ent_confirmar = ttk.Entry(marco, width=34, show="*")
-        self.ent_confirmar.pack(fill="x", pady=(0, 10))
+        ttk.Label(tarjeta_formulario, text="Confirmar clave", style="Card.TLabel").pack(anchor="w")
+        self.ent_confirmar = ttk.Entry(tarjeta_formulario, width=34, show="*")
+        self.ent_confirmar.pack(fill="x", pady=(2, 10))
         self.ent_confirmar.bind("<Return>", lambda _e: self.crear())
 
-        self.lbl_msg = ttk.Label(marco, text="", foreground="#a31a1a", wraplength=320)
+        self.lbl_msg = ttk.Label(
+            tarjeta_formulario, text="", foreground=PELIGRO,
+            style="Card.Muted.TLabel", wraplength=320,
+        )
         self.lbl_msg.pack(fill="x", pady=(0, 8))
 
-        botones = ttk.Frame(marco)
+        botones = ttk.Frame(tarjeta_formulario, style="SobreTarjeta.TFrame")
         botones.pack(fill="x")
-        ttk.Button(botones, text="Crear cuenta", command=self.crear).pack(
-            side="left", padx=(0, 6)
-        )
+        ttk.Button(botones, text="Crear cuenta", style="Primary.TButton",
+                   command=self.crear).pack(side="left", padx=(0, 6))
         ttk.Button(botones, text="Cancelar", command=self.destroy).pack(side="left")
         self.campos["dni"].focus()
 
@@ -112,6 +121,7 @@ class DialogoCrearCuenta(tk.Toplevel):
 class VentanaLogin(tk.Toplevel):
     def __init__(self, parent, exito_callback):
         super().__init__(parent)
+        aplicar_tema(self)
         self.title("AulaSync")
         self.resizable(False, False)
         self.exito_callback = exito_callback
@@ -119,40 +129,57 @@ class VentanaLogin(tk.Toplevel):
         self._refrescar_estado()
 
     def _construir_ui(self):
-        marco = ttk.Frame(self, padding=25)
+        marco = ttk.Frame(self, padding=22)
         marco.pack(fill="both", expand=True)
 
-        ttk.Label(marco, text="AulaSync", font=("Segoe UI", 16, "bold")).pack(pady=(0, 10))
+        tarjeta_marca = tarjeta(marco)
+        tarjeta_marca.pack(fill="x", pady=(0, 12))
+        ttk.Label(tarjeta_marca, text="AulaSync", style="Card.Titulo.TLabel").pack(anchor="w")
+        separador(tarjeta_marca).pack(fill="x", pady=(10, 0))
 
-        ttk.Label(marco, text="Usuario").pack(anchor="w")
-        self.ent_usuario = ttk.Entry(marco, width=30)
-        self.ent_usuario.pack(fill="x", pady=(0, 10))
+        tarjeta_formulario = tarjeta(marco)
+        tarjeta_formulario.pack(fill="both", expand=True)
+        tarjeta_formulario.columnconfigure(0, weight=1)
 
-        ttk.Label(marco, text="Clave").pack(anchor="w")
-        self.ent_clave = ttk.Entry(marco, width=30, show="*")
-        self.ent_clave.pack(fill="x", pady=(0, 10))
+        ttk.Label(tarjeta_formulario, text="Usuario", style="Card.TLabel").grid(
+            row=0, column=0, sticky="w"
+        )
+        self.ent_usuario = ttk.Entry(tarjeta_formulario, width=32)
+        self.ent_usuario.grid(row=1, column=0, sticky="ew", pady=(2, 10))
+
+        ttk.Label(tarjeta_formulario, text="Clave", style="Card.TLabel").grid(
+            row=2, column=0, sticky="w"
+        )
+        self.ent_clave = ttk.Entry(tarjeta_formulario, width=32, show="*")
+        self.ent_clave.grid(row=3, column=0, sticky="ew", pady=(2, 8))
         self.ent_clave.bind("<Return>", lambda _e: self.ingresar())
 
-        self.lbl_bloqueo = ttk.Label(marco, text="", foreground="#a31a1a")
-        self.lbl_bloqueo.pack(pady=(0, 8))
+        self.lbl_bloqueo = ttk.Label(
+            tarjeta_formulario, text="", foreground=PELIGRO, style="Card.Muted.TLabel"
+        )
+        self.lbl_bloqueo.grid(row=4, column=0, sticky="w", pady=(0, 6))
 
-        self.btn_ingresar = ttk.Button(marco, text="Ingresar", command=self.ingresar)
-        self.btn_ingresar.pack(fill="x")
+        self.btn_ingresar = ttk.Button(
+            tarjeta_formulario, text="Ingresar", style="Primary.TButton",
+            command=self.ingresar,
+        )
+        self.btn_ingresar.grid(row=5, column=0, sticky="ew")
 
         enlace = ttk.Label(
-            marco,
+            tarjeta_formulario,
             text="Crear cuenta de padre/apoderado",
-            foreground="#1256a0",
+            foreground=INFO,
             cursor="hand2",
             font=("Segoe UI", 9, "underline"),
+            background="#FFFFFF",
         )
-        enlace.pack(pady=(10, 0))
+        enlace.grid(row=6, column=0, pady=(12, 0))
         enlace.bind("<Button-1>", lambda _e: self.crear_cuenta())
 
-        self.lbl_msg = ttk.Label(marco, text="", foreground="#1a7a1a")
-        self.lbl_msg.pack(pady=(10, 0))
-
-        marco.columnconfigure(0, weight=1)
+        self.lbl_msg = ttk.Label(
+            tarjeta_formulario, text="", foreground=EXITO, style="Card.Muted.TLabel"
+        )
+        self.lbl_msg.grid(row=7, column=0, sticky="w", pady=(10, 0))
 
     def crear_cuenta(self) -> None:
         DialogoCrearCuenta(self, self._usuario_creado)
@@ -160,7 +187,7 @@ class VentanaLogin(tk.Toplevel):
     def _usuario_creado(self, usuario: str) -> None:
         self.ent_usuario.delete(0, "end")
         self.ent_usuario.insert(0, usuario)
-        self.lbl_msg.config(text="Cuenta creada. Ya puede iniciar sesión.", foreground="#1a7a1a")
+        self.lbl_msg.config(text="Cuenta creada. Ya puede iniciar sesión.", foreground=EXITO)
         self.ent_clave.focus()
 
     def _refrescar_estado(self):
@@ -168,7 +195,7 @@ class VentanaLogin(tk.Toplevel):
             segs = auth.autenticacion.segundos_restantes_bloqueo()
             self.lbl_bloqueo.config(
                 text=f"Demasiados intentos fallidos. Bloqueado {segs}s más.",
-                foreground="#a31a1a",
+                foreground=PELIGRO,
             )
             self.ent_usuario.config(state="disabled")
             self.ent_clave.config(state="disabled")
@@ -184,14 +211,14 @@ class VentanaLogin(tk.Toplevel):
         usuario = self.ent_usuario.get().strip()
         clave = self.ent_clave.get()
         if not usuario or not clave:
-            self.lbl_msg.config(text="Ingrese usuario y clave.", foreground="#a31a1a")
+            self.lbl_msg.config(text="Ingrese usuario y clave.", foreground=PELIGRO)
             return
 
         resultado = auth.login(usuario, clave)
         if resultado.exito:
-            self.lbl_msg.config(text=resultado.mensaje, foreground="#1a7a1a")
+            self.lbl_msg.config(text=resultado.mensaje, foreground=EXITO)
             self.after(600, lambda: self.exito_callback())
         else:
-            self.lbl_msg.config(text=resultado.mensaje, foreground="#a31a1a")
+            self.lbl_msg.config(text=resultado.mensaje, foreground=PELIGRO)
             self.ent_clave.delete(0, "end")
             self.ent_clave.focus()

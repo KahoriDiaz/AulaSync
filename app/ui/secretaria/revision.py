@@ -13,6 +13,7 @@ import tkinter as tk
 from tkinter import messagebox, simpledialog, ttk
 
 from app import errores
+from app.ui.tema import aplicar_tema, cabecera
 from app.config import config
 from app.servicios import matricula, solicitudes
 
@@ -22,6 +23,7 @@ class RevisionSolicitud(tk.Toplevel):
 
     def __init__(self, parent, id_solicitud: str, al_cerrar=None):
         super().__init__(parent)
+        aplicar_tema(self)
         self.title(f"AulaSync - Revisión de {id_solicitud}")
         self.geometry("1050x700")
         self.transient(parent)
@@ -60,13 +62,14 @@ class RevisionSolicitud(tk.Toplevel):
 
     # ------------------------------------------------------------ estructura
     def _construir(self) -> None:
+        cabecera(self, "AulaSync", "Revisión de matrícula").pack(fill="x")
         superior = ttk.Frame(self)
         superior.pack(fill="x", padx=8, pady=6)
         ttk.Label(
             superior,
             text=f"Solicitud {self.id_solicitud} — año {self.datos.get('anio', '')} "
                  f"— estado {self.datos.get('estado', '')}",
-            font=("TkDefaultFont", 10, "bold"),
+            style="Seccion.TLabel",
         ).pack(side="left")
 
         cuerpo = ttk.Frame(self)
@@ -92,8 +95,10 @@ class RevisionSolicitud(tk.Toplevel):
         barra = ttk.Frame(self)
         barra.pack(fill="x", padx=8, pady=8)
         ttk.Button(barra, text="Observar", command=self.observar).pack(side="left", padx=3)
-        ttk.Button(barra, text="Rechazar", command=self.rechazar).pack(side="left", padx=3)
-        ttk.Button(barra, text="Aprobar y matricular", command=self.aprobar).pack(side="right", padx=3)
+        ttk.Button(barra, text="Rechazar", style="Danger.TButton",
+                   command=self.rechazar).pack(side="left", padx=3)
+        ttk.Button(barra, text="Aprobar y matricular", style="Primary.TButton",
+                   command=self.aprobar).pack(side="right", padx=3)
         ttk.Button(barra, text="Cerrar", command=self._cerrar).pack(side="right", padx=3)
 
     def _pestana_datos(self) -> None:

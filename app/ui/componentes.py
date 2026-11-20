@@ -12,6 +12,7 @@ from tkinter import filedialog, messagebox, ttk
 
 from app import errores
 from app.servicios import exportar
+from app.ui.tema import SUPERFICIE
 
 DIGITOS = re.compile(r"^[0-9]{0,8}$")
 
@@ -48,7 +49,12 @@ class Tabla(ttk.Frame):
         marco.pack(fill="both", expand=True)
 
         self.tree = ttk.Treeview(marco, columns=self.columnas, show="headings")
-        self.tree.tag_configure("atencion", background="#fff3cd", foreground="#8a5a00")
+        self.tree.tag_configure("par", background="#F4F3EE")
+        self.tree.tag_configure("impar", background=SUPERFICIE)
+        self.tree.tag_configure("atencion", background="#FFF3CD", foreground="#8A5A00")
+        self.tree.tag_configure("aprobado", background="#E8F4EB", foreground="#245E38")
+        self.tree.tag_configure("pendiente", background="#FFF3CD", foreground="#8A5A00")
+        self.tree.tag_configure("rechazado", background="#FBECEA", foreground="#8E3D36")
         for col in self.columnas:
             texto = col.replace("_", " ").title()
             ancho = (anchos or {}).get(col, 100)
@@ -84,12 +90,12 @@ class Tabla(ttk.Frame):
     def _mostrar(self, filas):
         for item in self.tree.get_children():
             self.tree.delete(item)
-        for fila in filas:
+        for numero, fila in enumerate(filas):
             valores = [fila.get(col, "") for col in self.columnas]
+            base = "par" if numero % 2 else "impar"
             etiqueta = fila.get("_tag")
-            self.tree.insert(
-                "", "end", values=valores, tags=(etiqueta,) if etiqueta else ()
-            )
+            etiquetas = (base, etiqueta) if etiqueta else (base,)
+            self.tree.insert("", "end", values=valores, tags=etiquetas)
 
     def _ordenar(self, col):
         asc = self._orden_asc[col]

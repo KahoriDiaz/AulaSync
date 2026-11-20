@@ -14,6 +14,7 @@ from tkinter import messagebox, ttk
 from app import errores
 from app.servicios import solicitudes as sol, vacantes
 from app.ui.componentes import entry_dni
+from app.ui.tema import ALERTA, aplicar_tema, cabecera
 
 COLUMNAS = ("DNI", "Nombres", "Apellidos", "Nacimiento", "Nivel", "Grado", "Condición")
 AVISO = (
@@ -27,6 +28,7 @@ class DialogoHijo(tk.Toplevel):
 
     def __init__(self, parent, hijo: dict | None = None):
         super().__init__(parent)
+        aplicar_tema(self)
         self.title("AulaSync - Datos del hijo")
         self.resizable(False, False)
         self.transient(parent)
@@ -140,6 +142,7 @@ class SolicitarVacante(tk.Toplevel):
 
     def __init__(self, parent, id_solicitud: str | None = None, al_cerrar=None):
         super().__init__(parent)
+        aplicar_tema(self)
         self.title("AulaSync - Solicitar vacante")
         self.geometry("900x520")
         self.transient(parent)
@@ -167,6 +170,7 @@ class SolicitarVacante(tk.Toplevel):
         self.protocol("WM_DELETE_WINDOW", self._cerrar)
 
     def _construir(self) -> None:
+        cabecera(self, "AulaSync", "Solicitud de vacante").pack(fill="x")
         superior = ttk.Frame(self, padding=8)
         superior.pack(fill="x")
         ttk.Label(superior, text="Año escolar:").pack(side="left")
@@ -210,11 +214,13 @@ class SolicitarVacante(tk.Toplevel):
             self.tabla.column(columna, width=ancho)
         self.tabla.pack(fill="both", expand=True, pady=6)
 
-        ttk.Label(self, text=AVISO, foreground="#6a5d00", wraplength=780).pack(pady=(0, 4))
+        ttk.Label(self, text=AVISO, foreground=ALERTA, wraplength=780).pack(pady=(0, 4))
         acciones = ttk.Frame(self)
         acciones.pack(fill="x", padx=8, pady=8)
-        ttk.Button(acciones, text="Guardar borrador", command=lambda: self.guardar(False)).pack(side="left", padx=4)
-        ttk.Button(acciones, text="Enviar solicitud de vacante", command=lambda: self.guardar(True)).pack(side="left", padx=4)
+        ttk.Button(acciones, text="Guardar borrador",
+                   command=lambda: self.guardar(False)).pack(side="left", padx=4)
+        ttk.Button(acciones, text="Enviar solicitud de vacante", style="Accent.TButton",
+                   command=lambda: self.guardar(True)).pack(side="left", padx=4)
         ttk.Button(acciones, text="Cancelar", command=self._cerrar).pack(side="right", padx=4)
 
     def _cargar(self) -> None:

@@ -13,6 +13,7 @@ from tkinter import messagebox, simpledialog, ttk
 from app import errores
 from app.servicios import solicitudes
 from app.ui.componentes import Tabla
+from app.ui.tema import tarjeta
 from app.ui.secretaria.revision import RevisionSolicitud
 from app.ui.secretaria.revision_vacante import RevisionVacante
 
@@ -28,37 +29,43 @@ class BandejaSolicitudes(ttk.Frame):
         self.recargar()
 
     def _construir(self) -> None:
-        barra = ttk.Frame(self)
-        barra.pack(fill="x", padx=6, pady=6)
-        ttk.Button(barra, text="Revisar", command=self.revisar).pack(side="left", padx=3)
+        acciones = tarjeta(self)
+        acciones.pack(fill="x", padx=8, pady=(8, 6))
+        ttk.Label(acciones, text="Acciones", style="Card.Seccion.TLabel").pack(
+            anchor="w", pady=(0, 6)
+        )
+        barra = ttk.Frame(acciones, style="SobreTarjeta.TFrame")
+        barra.pack(fill="x")
+        ttk.Button(barra, text="Revisar", style="Primary.TButton",
+                   command=self.revisar).pack(side="left", padx=(0, 6))
         ttk.Button(barra, text="Observar", command=self.observar).pack(side="left", padx=3)
-        ttk.Button(barra, text="Rechazar", command=self.rechazar).pack(side="left", padx=3)
+        ttk.Button(barra, text="Rechazar", style="Danger.TButton",
+                   command=self.rechazar).pack(side="left", padx=3)
         ttk.Button(barra, text="Actualizar lista", command=self.recargar).pack(side="right", padx=3)
 
-        filtros = ttk.Frame(self)
-        filtros.pack(fill="x", padx=6)
-        ttk.Label(filtros, text="Año:").pack(side="left", padx=4)
+        filtros = tarjeta(self)
+        filtros.pack(fill="x", padx=8, pady=6)
+        ttk.Label(filtros, text="Año:", style="Card.TLabel").pack(side="left", padx=4)
         self.anio_var = tk.StringVar(value=str(date.today().year + 1))
         ttk.Entry(filtros, textvariable=self.anio_var, width=8).pack(side="left")
-        ttk.Label(filtros, text="Estado:").pack(side="left", padx=8)
+        ttk.Label(filtros, text="Estado:", style="Card.TLabel").pack(side="left", padx=8)
         self.estado_var = tk.StringVar(value="Todas")
         ttk.Combobox(
             filtros, textvariable=self.estado_var, state="readonly",
             values=("Todas",) + solicitudes.ESTADOS,
         ).pack(side="left")
-        ttk.Label(filtros, text="Etapa:").pack(side="left", padx=8)
+        ttk.Label(filtros, text="Etapa:", style="Card.TLabel").pack(side="left", padx=8)
         self.etapa_var = tk.StringVar(value="Todas")
         ttk.Combobox(
             filtros, textvariable=self.etapa_var, state="readonly",
             values=("Todas", "Vacante", "Matrícula"),
         ).pack(side="left")
         self.contador_var = tk.StringVar(value="Pendientes: 0 | Vacantes por atender: 0")
-        ttk.Label(filtros, textvariable=self.contador_var, font=("TkDefaultFont", 10, "bold")).pack(
-            side="right", padx=8
-        )
+        ttk.Label(filtros, textvariable=self.contador_var,
+                  style="Card.Seccion.TLabel").pack(side="right", padx=8)
 
         self.tabla = Tabla(self, columnas=COLUMNAS, anchos={"ID": 160, "Solicitante": 130})
-        self.tabla.pack(fill="both", expand=True, padx=6, pady=6)
+        self.tabla.pack(fill="both", expand=True, padx=8, pady=(0, 8))
 
     def recargar(self) -> None:
         """Vuelve a leer la bandeja y aplica los filtros seleccionados."""

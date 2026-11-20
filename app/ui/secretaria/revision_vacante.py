@@ -10,6 +10,7 @@ import tkinter as tk
 from tkinter import messagebox, simpledialog, ttk
 
 from app import errores
+from app.ui.tema import aplicar_tema, cabecera
 from app.servicios import matricula, solicitudes as sol, vacantes
 
 
@@ -18,6 +19,7 @@ class RevisionVacante(tk.Toplevel):
 
     def __init__(self, parent, id_solicitud: str, al_cerrar=None):
         super().__init__(parent)
+        aplicar_tema(self)
         self.title(f"AulaSync - Revisión de vacante {id_solicitud}")
         self.geometry("950x650")
         self.transient(parent)
@@ -38,13 +40,14 @@ class RevisionVacante(tk.Toplevel):
         self.protocol("WM_DELETE_WINDOW", self._cerrar)
 
     def _construir(self) -> None:
+        cabecera(self, "AulaSync", "Revisión de vacante").pack(fill="x")
         superior = ttk.Frame(self, padding=8)
         superior.pack(fill="x")
         ttk.Label(
             superior,
             text=f"Solicitud {self.id_solicitud} — año {self.datos.get('anio', '')} "
                  f"— estado {self.datos.get('estado', '')}",
-            font=("TkDefaultFont", 10, "bold"),
+            style="Seccion.TLabel",
         ).pack(side="left")
 
         contacto = ttk.LabelFrame(self, text="Datos de contacto del apoderado", padding=8)
@@ -53,7 +56,7 @@ class RevisionVacante(tk.Toplevel):
         ttk.Label(
             contacto,
             text=str(self.contacto.get("nombres_apoderado", "")),
-            font=("TkDefaultFont", 10, "bold"),
+            style="Seccion.TLabel",
         ).pack(anchor="w")
         fila = ttk.Frame(contacto)
         fila.pack(fill="x", pady=4)
@@ -115,10 +118,13 @@ class RevisionVacante(tk.Toplevel):
 
         barra = ttk.Frame(self)
         barra.pack(fill="x", padx=8, pady=8)
-        ttk.Button(barra, text="Registrar contacto", command=self.registrar_contacto).pack(side="left", padx=3)
+        ttk.Button(barra, text="Registrar contacto",
+                   command=self.registrar_contacto).pack(side="left", padx=3)
         ttk.Button(barra, text="Observar", command=self.observar).pack(side="left", padx=3)
-        ttk.Button(barra, text="Rechazar", command=self.rechazar).pack(side="left", padx=3)
-        ttk.Button(barra, text="Aceptar vacante", command=self.aceptar).pack(side="right", padx=3)
+        ttk.Button(barra, text="Rechazar", style="Danger.TButton",
+                   command=self.rechazar).pack(side="left", padx=3)
+        ttk.Button(barra, text="Aceptar vacante", style="Primary.TButton",
+                   command=self.aceptar).pack(side="right", padx=3)
         ttk.Button(barra, text="Cerrar", command=self._cerrar).pack(side="right", padx=3)
 
     def _copiar(self, valor: str) -> None:

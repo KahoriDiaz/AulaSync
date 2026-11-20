@@ -5,6 +5,7 @@
 - Windows 10/11. No hace falta instalar Python para usar `AulaSync.exe`.
 - Opcional: Tesseract con idioma `spa` para el autocompletado OCR. Si falta, los datos se escriben a mano.
 - Los campos de DNI solo aceptan números y como máximo 8 dígitos; no permite escribir ni pegar más.
+- La interfaz usa un tema cálido: tarjetas, botones jerárquicos y tablas con estados resaltados.
 
 ## 2. Primera ejecución
 1. Descomprimir `Entrega5_GrupoXX.zip`.

@@ -14,6 +14,7 @@ import tkinter as tk
 
 from app.config import config
 from app.db import conectar
+from app.ui.tema import aplicar_tema
 
 
 def conexion_valida() -> bool:
@@ -26,6 +27,7 @@ def conexion_valida() -> bool:
 
 def lanzar_login() -> None:
     root = tk.Tk()
+    aplicar_tema(root)
     root.withdraw()  # raíz oculta; el login es la ventana visible
 
     def al_exito():

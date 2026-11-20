@@ -130,6 +130,54 @@ class TestDatosDemo(unittest.TestCase):
         self.assertNotIn("'datos_demo'", fuente)
 
 
+class TestDisenoVisual(unittest.TestCase):
+    def test_tema_compartido_sin_recursos_de_marca(self) -> None:
+        tema = _leer("app/ui/tema.py")
+        for fragmento in (
+            "def aplicar_tema", "ttk.Style", 'theme_use("clam")',
+            "Primary.TButton", "Card.TFrame", "Treeview.Heading",
+        ):
+            with self.subTest(fragmento=fragmento):
+                self.assertIn(fragmento, tema)
+        self.assertIsNone(re.search(r"\blogo\b", tema, re.IGNORECASE))
+
+    def test_todas_las_ventanas_principales_aplican_el_tema(self) -> None:
+        ventanas = (
+            "main.py",
+            "app/ui/asistente_conexion.py",
+            "app/ui/login.py",
+            "app/ui/ventana_principal.py",
+            "app/ui/padre/solicitar_vacante.py",
+            "app/ui/padre/asistente_solicitud.py",
+            "app/ui/secretaria/revision.py",
+            "app/ui/secretaria/revision_vacante.py",
+        )
+        for relativo in ventanas:
+            with self.subTest(relativo=relativo):
+                self.assertIn("aplicar_tema(", _leer(relativo))
+
+    def test_pantallas_de_entrada_usan_tarjetas_y_boton_principal(self) -> None:
+        for relativo in (
+            "app/ui/login.py",
+            "app/ui/asistente_conexion.py",
+            "app/ui/secretaria/bandeja.py",
+            "app/ui/padre/mis_solicitudes.py",
+        ):
+            texto = _leer(relativo)
+            with self.subTest(relativo=relativo):
+                self.assertIn("tarjeta(", texto)
+                self.assertIsNotNone(re.search(r'style="(?:Primary|Accent)\.TButton"', texto))
+        self.assertIn("tarjeta(", _leer("app/ui/tema.py"))
+
+    def test_sin_imagenes_de_marca_en_toda_la_interfaz(self) -> None:
+        for ruta in sorted((RAIZ / "app" / "ui").rglob("*.py")):
+            texto = ruta.read_text(encoding="utf-8")
+            with self.subTest(archivo=ruta.name):
+                self.assertIsNone(re.search(r"\blogo\b", texto, re.IGNORECASE))
+                self.assertNotIn("PhotoImage", texto)
+                self.assertNotIn("BitmapImage", texto)
+
+
 class TestMarcaAulaSync(unittest.TestCase):
     def test_nombre_del_sistema_en_documentacion_y_docstrings(self) -> None:
         self.assertTrue(_leer("LEEME.txt").startswith("AULASYNC — ENTREGA 5"))

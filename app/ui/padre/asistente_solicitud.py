@@ -12,6 +12,7 @@ from tkinter import filedialog, messagebox, simpledialog, ttk
 from app import errores
 from app.servicios import solicitudes
 from app.ui.componentes import entry_dni, normalizar_dni
+from app.ui.tema import aplicar_tema, cabecera
 from ocr import extraer_constancia, extraer_dni, extraer_lineas, tesseract_disponible
 
 CAMPOS_ALUMNO = (
@@ -75,6 +76,7 @@ class AsistenteSolicitud(tk.Toplevel):
 
     def __init__(self, parent, id_solicitud: str | None = None, al_cerrar=None):
         super().__init__(parent)
+        aplicar_tema(self)
         self.title("AulaSync - Nueva solicitud de matrícula")
         self.geometry("980x680")
         self.transient(parent)
@@ -120,6 +122,7 @@ class AsistenteSolicitud(tk.Toplevel):
 
     # ------------------------------------------------------------ estructura
     def _construir(self) -> None:
+        cabecera(self, "AulaSync", "Solicitud de matrícula").pack(fill="x")
         self.notebook = ttk.Notebook(self)
         self.notebook.pack(fill="both", expand=True, padx=8, pady=8)
         titulos = (
@@ -141,9 +144,11 @@ class AsistenteSolicitud(tk.Toplevel):
         barra = ttk.Frame(self)
         barra.pack(fill="x", padx=8, pady=8)
         ttk.Button(barra, text="Anterior", command=self.anterior).pack(side="left", padx=3)
-        ttk.Button(barra, text="Siguiente", command=self.siguiente).pack(side="left", padx=3)
+        ttk.Button(barra, text="Siguiente", style="Primary.TButton",
+                   command=self.siguiente).pack(side="left", padx=3)
         ttk.Button(barra, text="Guardar borrador", command=self.guardar).pack(side="right", padx=3)
-        ttk.Button(barra, text="Enviar solicitud", command=self.enviar).pack(side="right", padx=3)
+        ttk.Button(barra, text="Enviar solicitud", style="Accent.TButton",
+                   command=self.enviar).pack(side="right", padx=3)
         self.protocol("WM_DELETE_WINDOW", self._cerrar)
 
     @staticmethod

@@ -59,7 +59,8 @@ class Listas(ttk.Frame):
             values=("Todas",),
         )
         self.seccion_combo.pack(side="left")
-        ttk.Button(filtros, text="Buscar", command=self._recargar_padron).pack(side="left", padx=8)
+        ttk.Button(filtros, text="Buscar", style="Primary.TButton",
+                   command=self._recargar_padron).pack(side="left", padx=8)
 
         self.tabla_padron = Tabla(
             pagina, columnas=listas.COLUMNAS_PADRON,
@@ -110,7 +111,8 @@ class Listas(ttk.Frame):
         ttk.Entry(filtros, textvariable=self.anio_anterior_var, width=8).pack(side="left")
         ttk.Label(filtros, text="Año actual:").pack(side="left", padx=8)
         ttk.Entry(filtros, textvariable=self.anio_actual_var, width=8).pack(side="left")
-        ttk.Button(filtros, text="Comparar años", command=self._comparar).pack(side="left", padx=8)
+        ttk.Button(filtros, text="Comparar años", style="Primary.TButton",
+                   command=self._comparar).pack(side="left", padx=8)
         ttk.Button(
             filtros, text="Importar lista externa (CSV/Excel)",
             command=self._importar,

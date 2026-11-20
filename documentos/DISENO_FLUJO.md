@@ -14,6 +14,8 @@
   permisos y mantiene el modelo de roles ya validado por los triggers.
 - La interfaz no muestra logo ni nombre de la institución. El listado de
   instituciones es un dato administrativo de la secretaría, no una marca.
+- El nombre del sistema es **AulaSync**, sin subtítulo. Todas las ventanas
+  llevan ese nombre en su título.
 
 ## 2. Bandeja de archivos JSON
 
@@ -80,3 +82,13 @@ de etapa y estado. `build.bat` los copia a la carpeta `data/solicitudes/` del
 ejecutable; `empaquetar.ps1` vuelve a reemplazar esa carpeta antes de comprimir
 y elimina credenciales o perfiles locales. La bandeja real del desarrollador no
 se distribuye.
+
+## 6. Interfaz
+
+- El tema visual vive en `app/ui/tema.py` y se aplica en todas las ventanas:
+  fondo cálido, tarjetas con borde suave, botones con jerarquía y tablas con
+  filas alternadas y estados resaltados.
+- Las acciones principales usan el color primario o el de acento; las acciones
+  destructivas se distinguen con el estilo `Danger.TButton`.
+- No se usa ningún toolkit distinto de `tkinter`/`ttk`, ni imágenes o recursos
+  de marca.

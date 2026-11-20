@@ -11,6 +11,7 @@ from tkinter import messagebox, ttk
 from app import errores
 from app.servicios import solicitudes
 from app.ui.componentes import Tabla
+from app.ui.tema import tarjeta
 from app.ui.padre.asistente_solicitud import AsistenteSolicitud
 from app.ui.padre.solicitar_vacante import SolicitarVacante
 
@@ -26,19 +27,25 @@ class MisSolicitudes(ttk.Frame):
         self.recargar()
 
     def _construir(self) -> None:
-        barra = ttk.Frame(self)
-        barra.pack(fill="x", padx=6, pady=6)
-        ttk.Button(barra, text="Solicitar vacante", command=self.nueva_solicitud).pack(side="left", padx=3)
-        ttk.Button(barra, text="Completar matrícula", command=self.completar_matricula).pack(side="left", padx=3)
-        ttk.Button(barra, text="Editar / continuar", command=self.editar_solicitud).pack(side="left", padx=3)
-        ttk.Button(barra, text="Ver observaciones", command=self.ver_observaciones).pack(side="left", padx=3)
+        acciones = tarjeta(self)
+        acciones.pack(fill="x", padx=8, pady=(8, 6))
+        barra = ttk.Frame(acciones, style="SobreTarjeta.TFrame")
+        barra.pack(fill="x")
+        ttk.Button(barra, text="Solicitar vacante", style="Primary.TButton",
+                   command=self.nueva_solicitud).pack(side="left", padx=(0, 6))
+        ttk.Button(barra, text="Completar matrícula", style="Accent.TButton",
+                   command=self.completar_matricula).pack(side="left", padx=3)
+        ttk.Button(barra, text="Editar / continuar",
+                   command=self.editar_solicitud).pack(side="left", padx=3)
+        ttk.Button(barra, text="Ver observaciones",
+                   command=self.ver_observaciones).pack(side="left", padx=3)
         ttk.Button(barra, text="Actualizar lista", command=self.recargar).pack(side="right", padx=3)
 
         self.tabla = Tabla(
             self, columnas=COLUMNAS,
             anchos={"ID": 150, "Año": 80, "Etapa": 90, "Estado": 240},
         )
-        self.tabla.pack(fill="both", expand=True, padx=6, pady=6)
+        self.tabla.pack(fill="both", expand=True, padx=8, pady=(0, 8))
 
     def recargar(self) -> None:
         """Vuelve a leer las bandejas del padre (incluye rechazadas y aprobadas)."""

@@ -39,7 +39,8 @@ class Distribucion(ttk.Frame):
             values=("Todos",) + distribucion.niveles(),
         )
         self.nivel_combo.pack(side="left")
-        ttk.Button(filtros, text="Buscar", command=self.recargar).pack(side="left", padx=6)
+        ttk.Button(filtros, text="Buscar", style="Primary.TButton",
+                   command=self.recargar).pack(side="left", padx=6)
 
         cupos = ttk.LabelFrame(self, text="Cupos por sección (máximo 30)")
         cupos.pack(fill="both", expand=True, padx=6, pady=4)
@@ -66,7 +67,8 @@ class Distribucion(ttk.Frame):
             cabecera, textvariable=self.seccion_var, width=8, state="readonly"
         )
         self.secciones_combo.pack(side="left")
-        ttk.Button(cabecera, text="Mover alumno", command=self.mover).pack(side="left", padx=6)
+        ttk.Button(cabecera, text="Mover alumno", style="Primary.TButton",
+                   command=self.mover).pack(side="left", padx=6)
         self.tabla_padron = Tabla(
             matriculados, columnas=distribucion.COLUMNAS_PADRON,
             anchos={"DNI": 105, "Nivel": 100, "Grado": 75, "Seccion": 85, "Estado": 100},
