@@ -1,0 +1,13 @@
+# Copie este archivo como config.ini y complete los valores.
+# La clave del administrador de MySQL (root) NO se guarda aqui: solo se pide
+# en el asistente de conexión para crear la base de datos y el usuario matricula_app.
+[bd]
+host = localhost
+port = 3306
+user = matricula_app
+password =
+database = bd_matricula
+
+[app]
+# URL oficial para consultar una constancia SIAGIE (configurable por el revisor)
+url_consulta_constancia =

@@ -1,0 +1,24 @@
+Registro de Matricula - Entrega 5 (sin frameworks)
+
+Requisitos:
+- MySQL 8.0 instalado y en ejecucion (el .exe no lo incluye).
+- Python 3.11+ (solo para desarrollo/empaquetado).
+
+Pasos de ejecucion (desarrollo):
+1. pip install -r requirements.txt
+2. Copie config.ini.example como config.ini y complete host/puerto/usuario/clave de MySQL (root).
+3. Ejecute: python main.py
+4. En el asistente de conexion, pruebe la conexion y luego "Crear base de datos y cargar datos de prueba".
+5. Ingrese con los usuarios demo:
+   - secretaria / secretaria123 (rol Secretaria)
+   - padre_demo / padre123 (rol Padre)
+
+Estructura de carpetas segun la especificacion (§2):
+- main.py: punto de entrada.
+- config.ini.example: configuracion (no subir config.ini real).
+- app/: config.py, db.py, seguridad.py, setup_bd.py, servicios/, ui/.
+- sql/: 01_esquema.sql ... 06_consultas.sql.
+- tests/: pruebas unittest.
+- data/solicitudes/: bandeja de solicitudes (archivos JSON).
+
+Entregable final: ZIP completo + .exe (generado con build.bat y PyInstaller).
