@@ -1,5 +1,6 @@
 # Entorno y credenciales
 .env
+config.ini
 .venv/
 entorno/
 __pycache__/
@@ -19,6 +20,7 @@ docs/*.pdf
 build/
 dist/
 *.spec
+*.zip
 
 # Sistema
 Thumbs.db

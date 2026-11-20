@@ -18,11 +18,13 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
+from app.config import config
 from app.errores import ErrorApp, ErrorConflicto, ErrorPermiso, ErrorValidacion
 from app.sesion import autenticacion
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
-SOLICITUDES_DIR = BASE_DIR / "data" / "solicitudes"
+# Junto al .exe en la entrega; junto al código fuente durante el desarrollo.
+BASE_DIR = config.USER_DIR
+SOLICITUDES_DIR = config.SOLICITUDES_DIR
 
 EXTENSIONES_PERMITIDAS = {".jpg", ".jpeg", ".png", ".pdf"}
 TAMANIO_MAXIMO_BYTES = 5 * 1024 * 1024  # 5 MB

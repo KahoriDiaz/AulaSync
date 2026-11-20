@@ -122,7 +122,7 @@ class AsistenteConexion(tk.Tk):
         try:
             crear_base_y_usuario(host, port, root_user, root_password, app_password)
             ejecutar_todos_los_scripts(
-                Path(__file__).resolve().parent.parent,
+                config.RECURSOS_DIR,
                 host,
                 port,
                 root_user,

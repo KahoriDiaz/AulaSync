@@ -5,6 +5,7 @@ importable y la interfaz desactiva el botón de OC con un aviso.
 """
 from __future__ import annotations
 
+import os
 import shutil
 from pathlib import Path
 
@@ -19,10 +20,17 @@ class TesseractNoDisponible(ErrorApp):
 
 
 def ruta_tesseract() -> str | None:
-    """Devuelve el ejecutable configurado o el que esté en el PATH."""
+    """Devuelve el ejecutable configurado, el incluido en el ZIP o el del PATH."""
     configurada = getattr(config, "tesseract_cmd", "")
     if configurada and Path(configurada).exists():
         return configurada
+    for base in (config.USER_DIR, config.RECURSOS_DIR):
+        empaquetado = base / "tesseract" / "tesseract.exe"
+        if empaquetado.exists():
+            tessdata = empaquetado.parent / "tessdata"
+            if tessdata.is_dir():
+                os.environ["TESSDATA_PREFIX"] = str(tessdata)
+            return str(empaquetado)
     return shutil.which("tesseract")
 
 

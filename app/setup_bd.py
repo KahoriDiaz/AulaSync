@@ -212,7 +212,7 @@ def verificar(database: str = "bd_matricula") -> None:
 
 
 def main() -> None:
-    base_dir = Path(__file__).resolve().parent.parent
+    base_dir = config.RECURSOS_DIR
     # Las credenciales de root se piden en el asistente de la UI; aqui solo se
     # ejecuta si se invoca directamente con valores por defecto (root/root).
     ejecutar_todos_los_scripts(base_dir, config.password or "root")

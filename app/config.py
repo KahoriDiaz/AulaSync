@@ -8,15 +8,41 @@ from __future__ import annotations
 
 import configparser
 import os
+import sys
 from pathlib import Path
 from typing import Any
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-CONFIG_FILE = BASE_DIR / "config.ini"
+
+def _rutas() -> tuple[Path, Path]:
+    """Separa archivos editables del usuario de recursos empaquetados.
+
+    Con PyInstaller ``--onedir`` los recursos (``sql``) quedan en ``_MEIPASS``,
+    pero ``config.ini`` y ``data/`` deben estar junto al .exe para que el
+    revisor pueda editarlos sin permisos de administrador.
+    """
+    if getattr(sys, "frozen", False):
+        usuario = Path(sys.executable).resolve().parent
+        recursos = Path(getattr(sys, "_MEIPASS", usuario))
+        return usuario, recursos
+    directorio = Path(__file__).resolve().parent.parent
+    return directorio, directorio
+
+
+USER_DIR, RECURSOS_DIR = _rutas()
+BASE_DIR = RECURSOS_DIR  # alias de compatibilidad con código anterior
+CONFIG_FILE = USER_DIR / "config.ini"
+DATOS_DIR = USER_DIR / "data"
+SOLICITUDES_DIR = DATOS_DIR / "solicitudes"
 
 
 class Configuracion:
     def __init__(self) -> None:
+        # Rutas expuestas también en la instancia para servicios y OCR.
+        self.USER_DIR = USER_DIR
+        self.RECURSOS_DIR = RECURSOS_DIR
+        self.DATOS_DIR = DATOS_DIR
+        self.SOLICITUDES_DIR = SOLICITUDES_DIR
+        self.CONFIG_FILE = CONFIG_FILE
         self.parser = configparser.ConfigParser()
         self.host = os.getenv("DB_HOST", "localhost")
         self.port = int(os.getenv("DB_PORT", "3306"))
