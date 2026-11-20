@@ -13,6 +13,7 @@ from tkinter import messagebox, simpledialog, ttk
 from app.servicios import auth, estudiantes, padres, instituciones
 from app.ui.componentes import CampoBusqueda, Tabla
 from app.ui.padre.mis_solicitudes import MisSolicitudes
+from app.ui.secretaria.bandeja import BandejaSolicitudes
 
 
 class VentanaPrincipal(tk.Tk):
@@ -39,6 +40,10 @@ class VentanaPrincipal(tk.Tk):
         rol = sesion.rol if sesion else ""
 
         if rol == "Secretaria":
+            barra.add_command(
+                label="Bandeja de solicitudes",
+                command=lambda: self.mostrar_pestana("bandeja"),
+            )
             m_mant = tk.Menu(barra, tearoff=0)
             m_mant.add_command(label="Estudiantes", command=lambda: self.mostrar_pestana("estudiantes"))
             m_mant.add_command(label="Padres / Apoderados", command=lambda: self.mostrar_pestana("padres"))
@@ -94,8 +99,10 @@ class VentanaPrincipal(tk.Tk):
         )
         self.pestanas["reportes"] = self._pestana_reportes()
 
-        # Padre: solo mis solicitudes (placeholder §5)
-        if (sesion and sesion.rol == "Padre"):
+        sesion = auth.sesion_actual()
+        if sesion and sesion.rol == "Secretaria":
+            self.pestanas["bandeja"] = self._pestana_bandeja()
+        if sesion and sesion.rol == "Padre":
             self.pestanas["solicitudes"] = self._pestana_solicitudes()
 
     def _pestana_crud(self, clave, titulo, columnas, servicio, campos_alta):
@@ -151,6 +158,13 @@ class VentanaPrincipal(tk.Tk):
         frame.contenido.pack(fill="both", expand=True)
         return frame
 
+    def _pestana_bandeja(self):
+        frame = ttk.Frame(self.notebook)
+        self.notebook.add(frame, text="Bandeja de solicitudes")
+        frame.contenido = BandejaSolicitudes(frame)
+        frame.contenido.pack(fill="both", expand=True)
+        return frame
+
     def _cargar_pestana_activa(self):
         indice = self.notebook.index("end") - 1
         if indice >= 0:
@@ -174,6 +188,8 @@ class VentanaPrincipal(tk.Tk):
                 return clave
             if clave == "solicitudes" and texto == "Mis solicitudes":
                 return clave
+            if clave == "bandeja" and texto == "Bandeja de solicitudes":
+                return clave
         return None
 
     def mostrar_pestana(self, clave):
@@ -189,7 +205,7 @@ class VentanaPrincipal(tk.Tk):
         frame = self.pestanas.get(clave)
         if not frame:
             return
-        if clave == "solicitudes":
+        if clave in ("solicitudes", "bandeja"):
             frame.contenido.recargar()
             return
         servicio = frame.servicio

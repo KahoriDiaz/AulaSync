@@ -98,7 +98,8 @@ BEGIN
     SELECT COUNT(*) INTO v_total
     FROM MATRICULA
     WHERE `AñoEscolar` = p_anio AND Nivel = p_nivel AND Grado = p_grado
-      AND Seccion = p_seccion AND Estado = 'Matriculado';
+      AND Seccion = p_seccion AND Estado = 'Matriculado'
+    FOR UPDATE;
     IF v_total >= v_capacidad THEN
         SET v_msg = CONCAT('La sección ya alcanzó el máximo de ', v_capacidad, ' estudiantes');
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = v_msg;

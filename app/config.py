@@ -24,6 +24,7 @@ class Configuracion:
         self.password = os.getenv("DB_PASSWORD", "matricula_app")
         self.database = os.getenv("DB_NAME", "bd_matricula")
         self.url_consulta_constancia = os.getenv("URL_CONSULTA_CONSTANCIA", "")
+        self.tesseract_cmd = os.getenv("TESSERACT_CMD", "")
         self._cargar()
 
     def _cargar(self) -> None:
@@ -40,6 +41,9 @@ class Configuracion:
                 self.url_consulta_constancia = self.parser["app"].get(
                     "url_consulta_constancia", self.url_consulta_constancia
                 )
+                self.tesseract_cmd = self.parser["app"].get(
+                    "tesseract_cmd", self.tesseract_cmd
+                )
 
     def guardar(self, datos: dict[str, Any]) -> None:
         """Guarda valores en config.ini (sin la clave del administrador MySQL)."""
@@ -55,6 +59,9 @@ class Configuracion:
             self.parser.add_section("app")
         self.parser["app"]["url_consulta_constancia"] = str(
             datos.get("url_consulta_constancia", self.url_consulta_constancia)
+        )
+        self.parser["app"]["tesseract_cmd"] = str(
+            datos.get("tesseract_cmd", self.tesseract_cmd)
         )
         with CONFIG_FILE.open("w", encoding="utf-8") as f:
             self.parser.write(f)

@@ -9,7 +9,6 @@ collect_ignore = [
     "test_almacen.py",
     "test_formatos.py",
     "test_interfaz.py",
-    "test_ocr.py",
     "test_servicios.py",
     "test_solicitudes.py",
     "test_validaciones.py",

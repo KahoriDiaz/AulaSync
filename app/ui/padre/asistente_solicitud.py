@@ -1,17 +1,17 @@
 """Asistente del padre para crear la solicitud de matrícula (§6.2 y §14.8).
 
-Cinco pasos con botones Anterior/Siguiente y validación por paso. Los pasos 1 a
-3 (destino, datos de los alumnos y de los padres) están implementados en esta
-fase; el paso 4 queda reservado para documentos/OCR y el 5 muestra el resumen y
-permite guardar o enviar la solicitud.
+Cinco pasos con botones Anterior/Siguiente y validación por paso. El paso 4
+permite adjuntar documentos, registrar la constancia y sus logros, y usar OCR
+como ayuda opcional; el 5 muestra el resumen y permite guardar o enviar.
 """
 from __future__ import annotations
 
 import tkinter as tk
-from tkinter import messagebox, simpledialog, ttk
+from tkinter import filedialog, messagebox, simpledialog, ttk
 
 from app import errores
 from app.servicios import solicitudes
+from ocr import extraer_constancia, extraer_dni, extraer_lineas, tesseract_disponible
 
 CAMPOS_ALUMNO = (
     ("DNI", "DNI", "texto"),
@@ -57,7 +57,16 @@ OPCIONES = {
     "booleano": ("Sí", "No"),
     "atencion": ("",) + solicitudes.TIPOS_ATENCION,
     "instruccion": ("",) + solicitudes.GRADOS_INSTRUCCION,
+    "nivel_doc": ("",) + tuple(solicitudes.NIVELES),
+    "situacion": ("",) + solicitudes.SITUACIONES_FINALES,
+    "tipo_ie": ("", "Estatal", "Particular"),
 }
+GRADOS_DOC = tuple(grado for grados in solicitudes.NIVELES.values() for grado in grados)
+ARCHIVOS = (
+    ("Imágenes y PDF", "*.jpg *.jpeg *.png *.pdf"),
+    ("Imágenes", "*.jpg *.jpeg *.png"),
+    ("PDF", "*.pdf"),
+)
 
 
 class AsistenteSolicitud(tk.Toplevel):
@@ -86,6 +95,12 @@ class AsistenteSolicitud(tk.Toplevel):
         self.contacto_vars: dict[str, tk.StringVar] = {}
         self.alumno_vars: list[dict[str, tk.StringVar]] = []
         self.padre_vars: list[dict[str, tk.StringVar]] = []
+        self.constancia_vars: dict[str, tk.StringVar] = {}
+        self.sin_constancia_var = tk.BooleanVar(value=False)
+        self.docs_labels: dict[str, tk.StringVar] = {}
+        self.dni_padre_labels: list[tk.StringVar] = []
+        self.logros_tree: ttk.Treeview | None = None
+        self.ocr_button: ttk.Button | None = None
         self._construir()
         self._cargar_datos()
 
@@ -336,15 +351,332 @@ class AsistenteSolicitud(tk.Toplevel):
         self.datos["padres"].pop(indice)
         self._refrescar_padres()
 
-    # ------------------------------------------------------------- pasos 4/5
+    # ---------------------------------------------------------------- paso 4
     def _construir_paso4(self) -> None:
-        ttk.Label(
-            self.pasos[3],
-            text="Los documentos (DNI, constancia) y el autocompletado con OCR\n"
-                 "se incorporan en la siguiente fase del aplicativo.\n\n"
-                 "Puede guardar un borrador o continuar con el resumen y el envío.",
-            justify="center",
-        ).pack(expand=True)
+        pagina = self.pasos[3]
+        seleccion = ttk.LabelFrame(pagina, text="Documentos del alumno")
+        seleccion.pack(fill="x", padx=8, pady=6)
+        ttk.Label(seleccion, text="Alumno:").pack(side="left", padx=4)
+        self.doc_alumno_combo = ttk.Combobox(seleccion, state="readonly", width=34)
+        self.doc_alumno_combo.pack(side="left", padx=4)
+        self.doc_alumno_combo.bind("<<ComboboxSelected>>", self._documento_alumno_cambiado)
+        ttk.Button(seleccion, text="Adjuntar DNI", command=self.adjuntar_dni_alumno).pack(side="left", padx=3)
+        ttk.Button(seleccion, text="Adjuntar constancia", command=self.adjuntar_constancia).pack(side="left", padx=3)
+        self.ocr_button = ttk.Button(
+            seleccion, text="Autocompletar con OCR", command=self.autocompletar_ocr
+        )
+        self.ocr_button.pack(side="left", padx=3)
+        if not tesseract_disponible():
+            self.ocr_button["state"] = "disabled"
+            ttk.Label(
+                seleccion,
+                text="OCR no disponible: llene los campos manualmente.",
+                foreground="#8a5a00",
+            ).pack(side="left", padx=6)
+
+        estados = ttk.Frame(pagina)
+        estados.pack(fill="x", padx=8)
+        self.docs_labels["dni"] = tk.StringVar(value="DNI del alumno: sin adjuntar")
+        self.docs_labels["constancia"] = tk.StringVar(value="Constancia: sin adjuntar")
+        ttk.Label(estados, textvariable=self.docs_labels["dni"]).pack(side="left", padx=12)
+        ttk.Label(estados, textvariable=self.docs_labels["constancia"]).pack(side="left", padx=12)
+
+        constancia = ttk.LabelFrame(pagina, text="Constancia de logros")
+        constancia.pack(fill="x", padx=8, pady=6)
+        self.constancia_controles: dict[str, ttk.Entry | ttk.Combobox] = {}
+        campos = (
+            ("codigo_virtual", "Código virtual (8 caracteres)"),
+            ("nivel_educativo", "Nivel educativo"),
+            ("fecha_hora_emision", "Fecha de emisión (AAAA-MM-DD HH:MM:SS)"),
+            ("codigo_modular_ie", "Código modular de la I.E."),
+            ("nombre_ie", "Nombre de la I.E."),
+        )
+        for clave, etiqueta in campos:
+            fila = ttk.Frame(constancia)
+            fila.pack(fill="x", pady=2)
+            ttk.Label(fila, text=etiqueta, width=38, anchor="w").pack(side="left")
+            variable = tk.StringVar()
+            if clave == "nivel_educativo":
+                control = ttk.Combobox(
+                    fila, textvariable=variable, values=tuple(solicitudes.NIVELES),
+                    state="readonly",
+                )
+            else:
+                control = ttk.Entry(fila, textvariable=variable)
+            control.pack(side="left", fill="x", expand=True)
+            self.constancia_vars[clave] = variable
+            self.constancia_controles[clave] = control
+        ttk.Label(constancia, text="Tipo de I.E.:").pack(side="left", padx=4)
+        self.constancia_vars["tipo_ie"] = tk.StringVar()
+        ttk.Combobox(
+            constancia, textvariable=self.constancia_vars["tipo_ie"],
+            values=("Estatal", "Particular"), state="readonly", width=14,
+        ).pack(side="left", padx=4)
+        ttk.Checkbutton(
+            constancia, text="Sin constancia (ingresante)",
+            variable=self.sin_constancia_var, command=self._sin_constancia_cambiado,
+        ).pack(side="left", padx=12)
+
+        logros = ttk.LabelFrame(pagina, text="Logros de aprendizaje")
+        logros.pack(fill="both", expand=True, padx=8, pady=6)
+        self.logros_tree = ttk.Treeview(
+            logros, columns=("Anio", "Grado", "IE", "Situacion"), show="headings", height=6
+        )
+        for columna, texto, ancho in (
+            ("Anio", "Año", 80), ("Grado", "Grado", 100),
+            ("IE", "I.E. (código modular)", 220), ("Situacion", "Situación", 230),
+        ):
+            self.logros_tree.heading(columna, text=texto)
+            self.logros_tree.column(columna, width=ancho)
+        self.logros_tree.pack(fill="both", expand=True, padx=6, pady=6)
+        botones = ttk.Frame(logros)
+        botones.pack(fill="x", padx=6, pady=6)
+        self.logro_vars: dict[str, tk.StringVar] = {
+            "anio": tk.StringVar(), "grado": tk.StringVar(),
+            "ie": tk.StringVar(), "situacion": tk.StringVar(),
+        }
+        for clave, ancho in (("anio", 8), ("grado", 10), ("ie", 18), ("situacion", 24)):
+            ttk.Entry(botones, textvariable=self.logro_vars[clave], width=ancho).pack(
+                side="left", padx=2
+            )
+        ttk.Button(botones, text="Agregar logro", command=self.agregar_logro).pack(side="left", padx=3)
+        ttk.Button(botones, text="Quitar seleccionado", command=self.quitar_logro).pack(side="left", padx=3)
+
+        padres = ttk.LabelFrame(pagina, text="DNI de padres y apoderados")
+        padres.pack(fill="x", padx=8, pady=6)
+        self.padres_docs_frame = ttk.Frame(padres)
+        self.padres_docs_frame.pack(fill="x", padx=6, pady=6)
+
+    def _indice_documento_alumno(self) -> int | None:
+        if self.doc_alumno_combo is None:
+            return None
+        texto = self.doc_alumno_combo.get()
+        if not texto.isdigit():
+            return None
+        return int(texto) - 1
+
+    def _refrescar_documentos(self) -> None:
+        alumnos = self.datos.get("alumnos", [])
+        opciones = tuple(str(i + 1) for i in range(len(alumnos)))
+        self.doc_alumno_combo["values"] = opciones
+        if opciones:
+            actual = self.doc_alumno_combo.get()
+            self.doc_alumno_combo.set(actual if actual in opciones else opciones[0])
+        else:
+            self.doc_alumno_combo.set("")
+        for item in self.padres_docs_frame.winfo_children():
+            item.destroy()
+        self.dni_padre_labels.clear()
+        for indice, padre in enumerate(self.datos.get("padres", [])):
+            fila = ttk.Frame(self.padres_docs_frame)
+            fila.pack(fill="x", pady=2)
+            ttk.Label(fila, text=f"{padre.get('vinculo', 'Padre')} {indice + 1}:", width=20).pack(side="left")
+            variable = tk.StringVar(value="sin adjuntar")
+            if padre.get("docs", {}).get("dni"):
+                variable.set(padre["docs"]["dni"].split("/")[-1])
+            ttk.Label(fila, textvariable=variable, width=38).pack(side="left")
+            ttk.Button(
+                fila, text="Adjuntar DNI",
+                command=lambda i=indice: self.adjuntar_dni_padre(i),
+            ).pack(side="left", padx=3)
+            self.dni_padre_labels.append(variable)
+        self._cargar_documentos_alumno()
+
+    def _documento_alumno_cambiado(self, _evento=None) -> None:
+        self._sincronizar_documentos()
+        self._cargar_documentos_alumno()
+
+    def _sin_constancia_cambiado(self) -> None:
+        """Desactiva los campos de constancia cuando es un alumno ingresante."""
+        self._sincronizar_documentos()
+        sin = self.sin_constancia_var.get()
+        estado = "disabled" if sin else "normal"
+        for control in self.constancia_controles.values():
+            if isinstance(control, ttk.Combobox):
+                control.configure(state="disabled" if sin else "readonly")
+            else:
+                control.configure(state=estado)
+
+    def _cargar_documentos_alumno(self) -> None:
+        indice = self._indice_documento_alumno()
+        if indice is None or indice >= len(self.datos.get("alumnos", [])):
+            for variable in self.constancia_vars.values():
+                variable.set("")
+            self.sin_constancia_var.set(False)
+            self.logros_tree.delete(*self.logros_tree.get_children())
+            return
+        alumno = self.datos["alumnos"][indice]
+        constancia = alumno.get("constancia", {})
+        for clave, variable in self.constancia_vars.items():
+            variable.set(constancia.get(clave, "") or "")
+        self.sin_constancia_var.set(bool(constancia.get("sin_constancia")))
+        self._sin_constancia_cambiado()
+        for tipo in ("dni", "constancia"):
+            ruta = alumno.get("docs", {}).get(tipo, "")
+            self.docs_labels[tipo].set(
+                f"{'DNI del alumno' if tipo == 'dni' else 'Constancia'}: "
+                f"{ruta.split('/')[-1] if ruta else 'sin adjuntar'}"
+            )
+        self._refrescar_logros()
+
+    def _refrescar_logros(self) -> None:
+        self.logros_tree.delete(*self.logros_tree.get_children())
+        indice = self._indice_documento_alumno()
+        if indice is None or indice >= len(self.datos.get("alumnos", [])):
+            return
+        for fila in self.datos["alumnos"][indice].get("constancia", {}).get("logros", []):
+            self.logros_tree.insert("", "end", values=(
+                fila.get("anio", ""), fila.get("grado", ""),
+                fila.get("codigo_modular_ie", ""), fila.get("situacion", ""),
+            ))
+
+    def _sincronizar_documentos(self) -> None:
+        indice = self._indice_documento_alumno()
+        if indice is None or indice >= len(self.datos.get("alumnos", [])):
+            return
+        constancia = self.datos["alumnos"][indice].setdefault("constancia", {})
+        for clave, variable in self.constancia_vars.items():
+            constancia[clave] = variable.get()
+        constancia["sin_constancia"] = self.sin_constancia_var.get()
+
+    def adjuntar_dni_alumno(self) -> None:
+        self._sincronizar_documentos()
+        indice = self._indice_documento_alumno()
+        if indice is None:
+            messagebox.showwarning("Atención", "Agregue un alumno primero.", parent=self)
+            return
+        origen = filedialog.askopenfilename(title="DNI del alumno", filetypes=ARCHIVOS, parent=self)
+        if not origen:
+            return
+        try:
+            ruta = solicitudes.copiar_documento(origen, self.datos["id"])
+        except errores.ErrorApp as exc:
+            messagebox.showerror("Documento no válido", str(exc), parent=self)
+            return
+        self.datos["alumnos"][indice].setdefault("docs", {})["dni"] = ruta
+        self.docs_labels["dni"].set(f"DNI del alumno: {ruta.split('/')[-1]}")
+
+    def adjuntar_constancia(self) -> None:
+        self._sincronizar_documentos()
+        indice = self._indice_documento_alumno()
+        if indice is None:
+            messagebox.showwarning("Atención", "Agregue un alumno primero.", parent=self)
+            return
+        origen = filedialog.askopenfilename(title="Constancia de logros", filetypes=ARCHIVOS, parent=self)
+        if not origen:
+            return
+        try:
+            ruta = solicitudes.copiar_documento(origen, self.datos["id"])
+        except errores.ErrorApp as exc:
+            messagebox.showerror("Documento no válido", str(exc), parent=self)
+            return
+        self.datos["alumnos"][indice].setdefault("docs", {})["constancia"] = ruta
+        self.docs_labels["constancia"].set(f"Constancia: {ruta.split('/')[-1]}")
+
+    def adjuntar_dni_padre(self, indice: int) -> None:
+        origen = filedialog.askopenfilename(title="DNI del padre/apoderado", filetypes=ARCHIVOS, parent=self)
+        if not origen:
+            return
+        try:
+            ruta = solicitudes.copiar_documento(origen, self.datos["id"])
+        except errores.ErrorApp as exc:
+            messagebox.showerror("Documento no válido", str(exc), parent=self)
+            return
+        self.datos["padres"][indice].setdefault("docs", {})["dni"] = ruta
+        self.dni_padre_labels[indice].set(ruta.split("/")[-1])
+
+    def agregar_logro(self) -> None:
+        self._sincronizar_documentos()
+        anio = self.logro_vars["anio"].get().strip()
+        grado = self.logro_vars["grado"].get().strip()
+        situacion = self.logro_vars["situacion"].get().strip()
+        if not (anio.isdigit() and len(anio) == 4 and grado and situacion):
+            messagebox.showwarning(
+                "Logro incompleto", "Ingrese año (4 dígitos), grado y situación.", parent=self
+            )
+            return
+        indice = self._indice_documento_alumno()
+        if indice is None:
+            return
+        constancia = self.datos["alumnos"][indice].setdefault("constancia", {})
+        constancia.setdefault("logros", []).append({
+            "anio": anio, "grado": grado, "situacion": situacion,
+            "codigo_modular_ie": self.logro_vars["ie"].get().strip(),
+        })
+        self._refrescar_logros()
+
+    def quitar_logro(self) -> None:
+        seleccion = self.logros_tree.selection()
+        if not seleccion:
+            messagebox.showwarning("Atención", "Seleccione un logro.", parent=self)
+            return
+        indice_alumno = self._indice_documento_alumno()
+        if indice_alumno is None:
+            return
+        logros = self.datos["alumnos"][indice_alumno]["constancia"].setdefault("logros", [])
+        for item in seleccion:
+            posicion = self.logros_tree.index(item)
+            if 0 <= posicion < len(logros):
+                logros.pop(posicion)
+        self._refrescar_logros()
+
+    def autocompletar_ocr(self) -> None:
+        """Extrae datos con OCR y pide confirmación antes de aplicarlos (§6.2.3)."""
+        self._sincronizar_documentos()
+        indice = self._indice_documento_alumno()
+        if indice is None:
+            messagebox.showwarning("Atención", "Agregue un alumno primero.", parent=self)
+            return
+        origen = filedialog.askopenfilename(title="Imagen para OCR", filetypes=ARCHIVOS, parent=self)
+        if not origen:
+            return
+        try:
+            lineas = extraer_lineas(origen)
+        except errores.ErrorApp as exc:
+            messagebox.showwarning("OCR no disponible", str(exc), parent=self)
+            return
+        campos_dni = extraer_dni(lineas, tabla="ESTUDIANTE")
+        campos_const, logros = extraer_constancia(lineas)
+        if not campos_dni and not campos_const:
+            messagebox.showinfo(
+                "Sin resultados", "No se reconocieron campos. Complete el formulario a mano.",
+                parent=self,
+            )
+            return
+        detalle = "\n".join(
+            f"- {clave.split('.')[-1]}: {valor} ({conf}%)"
+            for clave, (valor, conf) in list(campos_dni.items()) + list(campos_const.items())
+        )
+        if logros:
+            detalle += f"\n- Logros detectados: {len(logros)}"
+        if not messagebox.askyesno(
+            "Confirmar OCR",
+            "Revise los datos reconocidos antes de aplicarlos:\n\n" + detalle
+            + "\n\n¿Desea aplicarlos al formulario?",
+            parent=self,
+        ):
+            return
+        alumno = self.datos["alumnos"][indice]
+        aplicados = solicitudes.aplicar_ocr_dni(campos_dni, alumno["ficha"])
+        aplicados += solicitudes.aplicar_ocr_constancia(
+            campos_const, logros, alumno.setdefault("constancia", {})
+        )
+        self._cargar_ficha_alumno(indice)
+        self._cargar_documentos_alumno()
+        messagebox.showinfo(
+            "OCR aplicado", f"Se actualizaron {len(aplicados)} campos. Revíselos antes de enviar.",
+            parent=self,
+        )
+
+    def _cargar_ficha_alumno(self, indice: int) -> None:
+        if indice >= len(self.alumno_vars):
+            return
+        alumno = self.datos["alumnos"][indice]
+        for clave, variable in self.alumno_vars[indice].items():
+            if clave in ("nee", "hermanos_ie"):
+                variable.set(", ".join(alumno.get(clave, [])))
+            else:
+                variable.set(str(alumno["ficha"].get(clave, "")))
 
     def _construir_paso5(self) -> None:
         pagina = self.pasos[4]
@@ -371,6 +703,7 @@ class AsistenteSolicitud(tk.Toplevel):
         self._refrescar_alumnos()
         self._refrescar_fichas_alumnos()
         self._refrescar_padres()
+        self._refrescar_documentos()
         self._refrescar_resumen()
 
     def _sincronizar(self) -> None:
@@ -403,6 +736,7 @@ class AsistenteSolicitud(tk.Toplevel):
                 self.datos["padres"][indice][clave] = variable.get()
         self.datos["dni_responsable"] = self.responsable_combo.get() or None
         self.datos["dni_apoderado"] = self.apoderado_combo.get() or None
+        self._sincronizar_documentos()
 
     def _guardar_datos(self) -> bool:
         if self.datos.get("estado") not in ("Borrador", "Observada"):
@@ -430,7 +764,7 @@ class AsistenteSolicitud(tk.Toplevel):
         """Sincroniza, valida el paso actual y avanza al siguiente."""
         self._sincronizar()
         paso = self.notebook.index(self.notebook.select()) + 1
-        if paso <= 3 and not self._validar((paso,)):
+        if paso <= 4 and not self._validar((paso,)):
             return
         if paso == 5:
             self._refrescar_resumen()
@@ -453,7 +787,7 @@ class AsistenteSolicitud(tk.Toplevel):
     def enviar(self) -> None:
         """Valida la solicitud completa y la envía a la bandeja de la secretaria."""
         self._sincronizar()
-        if not self._validar((1, 2, 3)):
+        if not self._validar((1, 2, 3, 4, 5)):
             return
         try:
             errores_envio = solicitudes.validar_para_enviar(self.datos)

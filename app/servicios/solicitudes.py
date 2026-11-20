@@ -50,6 +50,8 @@ CAMPOS_PADRE_OBLIGATORIOS = (
     "DistritoDomicilio", "Celular",
 )
 ESTADOS = ("Borrador", "Enviada", "Observada", "Aprobada", "Rechazada")
+SITUACIONES_FINALES = ("APROBADO", "REQUIERE RECUPERACIÓN")
+CODIGO_VIRTUAL_RE = re.compile(r"^[A-Z0-9]{8}$")
 CARPETAS = {
     "pendientes": "pendientes",
     "aprobadas": "aprobadas",
@@ -108,7 +110,11 @@ def nuevo_alumno() -> dict[str, Any]:
         "hermanos_ie": [],
         "ie_procedencia": {"codigo_modular": "", "nombre": "", "tipo": ""},
         "destino": {"nivel": "", "grado": ""},
-        "constancia": {"codigo_virtual": "", "logros": []},
+        "constancia": {
+            "codigo_virtual": "", "nivel_educativo": "", "fecha_hora_emision": "",
+            "codigo_modular_ie": "", "nombre_ie": "", "tipo_ie": "",
+            "logros": [], "sin_constancia": False,
+        },
         "docs": {"dni": "", "constancia": ""},
         "verificacion": {"estado": "Pendiente", "verificado_por": None},
     }
@@ -122,6 +128,7 @@ def nuevo_padre(vinculo: str = "Padre") -> dict[str, Any]:
         "ApellidoMaterno": "", "FechaNacimiento": "", "OcupacionActual": "",
         "GradoInstruccion": "", "DomicilioActual": "", "DistritoDomicilio": "",
         "TelefonoFijo": "", "Celular": "", "CorreoElectronico": "",
+        "docs": {"dni": ""},
     }
     return padre
 
@@ -457,7 +464,59 @@ def validar_paso(paso: int, solicitud: dict[str, Any]) -> list[str]:
             errores.append("El apoderado debe estar registrado en la solicitud.")
         return errores
 
-    # Los pasos 4 y 5 (documentos, OCR y resumen) se completan en la fase 5.
+    if paso == 4:
+        for indice, alumno in enumerate(alumnos, 1):
+            docs = alumno.get("docs", {})
+            for tipo in ("dni", "constancia"):
+                ruta = docs.get(tipo)
+                if ruta:
+                    archivo = ruta_documento(str(ruta))
+                    if not archivo.is_file():
+                        errores.append(
+                            f"Alumno {indice}: falta el archivo de {tipo} adjuntado."
+                        )
+                    elif archivo.stat().st_size > TAMANIO_MAXIMO_BYTES:
+                        errores.append(
+                            f"Alumno {indice}: el archivo de {tipo} supera los 5 MB."
+                        )
+                    elif archivo.suffix.lower() not in EXTENSIONES_PERMITIDAS:
+                        errores.append(
+                            f"Alumno {indice}: formato no permitido en {tipo}."
+                        )
+            constancia = alumno.get("constancia", {})
+            if constancia.get("sin_constancia"):
+                if constancia.get("codigo_virtual") or constancia.get("logros"):
+                    errores.append(
+                        f"Alumno {indice}: ingrese el código virtual o marque "
+                        "'Sin constancia (ingresante)', pero no ambos."
+                    )
+                continue
+            codigo = str(constancia.get("codigo_virtual") or "").strip().upper()
+            if codigo and not CODIGO_VIRTUAL_RE.fullmatch(codigo):
+                errores.append(
+                    f"Alumno {indice}: el código virtual debe tener 8 caracteres "
+                    "alfanuméricos."
+                )
+            niveles_grado = set().union(*NIVELES.values())
+            for fila in constancia.get("logros", []):
+                anio = str(fila.get("anio", ""))
+                if not re.fullmatch(r"\d{4}", anio):
+                    errores.append(f"Alumno {indice}: el año del logro no es válido.")
+                if fila.get("grado") not in niveles_grado:
+                    errores.append(f"Alumno {indice}: el grado del logro no es válido.")
+                if fila.get("situacion") not in SITUACIONES_FINALES:
+                    errores.append(f"Alumno {indice}: la situación del logro no es válida.")
+        for indice, padre in enumerate(padres, 1):
+            ruta = padre.get("docs", {}).get("dni")
+            if ruta:
+                archivo = ruta_documento(str(ruta))
+                if not archivo.is_file() or archivo.stat().st_size > TAMANIO_MAXIMO_BYTES:
+                    errores.append(f"Padre/apoderado {indice}: el DNI adjuntado no es válido.")
+        return errores
+
+    if paso == 5:
+        return errores
+
     return errores
 
 
@@ -597,8 +656,62 @@ def rechazar(
     return datos
 
 
+# ------------------------------------------------------- bloqueo de aprobación
+def iniciar_procesamiento(id_solicitud: str) -> str:
+    """Renombra la carpeta a ``SOL-X.procesando`` de forma atómica (§13.2.2).
+
+    Devuelve el identificador con el sufijo, que es el que deben usar las
+    lecturas durante la transacción. Si otra secretaria ya tiene el archivo,
+    ``os.rename`` falla y se traduce como conflicto.
+    """
+    _exigir_secretaria()
+    origen = carpeta_solicitud(id_solicitud)
+    procesando = f"{id_solicitud}.procesando"
+    destino = carpeta_solicitud(procesando)
+    if not origen.exists():
+        raise ErrorConflicto(f"No existe la carpeta de la solicitud {id_solicitud}.")
+    try:
+        os.rename(origen, destino)
+    except OSError as exc:
+        raise ErrorConflicto(
+            f"Otra persona está procesando la solicitud {id_solicitud}. Intente nuevamente."
+        ) from exc
+    return procesando
+
+
+def cancelar_procesamiento(id_procesando: str) -> None:
+    """Devuelve la carpeta a su nombre original si la transacción falló."""
+    id_original = id_procesando.removesuffix(".procesando")
+    origen = carpeta_solicitud(id_procesando)
+    if origen.exists():
+        os.rename(origen, carpeta_solicitud(id_original))
+
+
+def finalizar_procesamiento(
+    id_procesando: str, solicitud: dict[str, Any]
+) -> None:
+    """Mueve la carpeta bloqueada a ``aprobadas/`` con su identificador final.
+
+    Escribe primero el JSON actualizado dentro de la carpeta bloqueada y luego
+    renombra la carpeta en un solo paso, eliminando el sufijo ``.procesando``.
+    """
+    id_original = id_procesando.removesuffix(".procesando")
+    origen = carpeta_solicitud(id_procesando)
+    if not origen.exists():
+        raise ErrorConflicto(f"No existe la carpeta bloqueada {id_procesando}.")
+    json_atomico(origen / "solicitud.json", solicitud)
+    destino = carpeta_solicitud(id_original, "aprobadas")
+    if destino.exists():
+        raise ErrorConflicto(f"La solicitud {id_original} ya fue aprobada.")
+    os.rename(origen, destino)
+
+
 def aprobar(id_solicitud: str, usuario_dni: str | None = None) -> dict[str, Any]:
-    """Marca la solicitud como Aprobada y la mueve a aprobadas/ (§6.3)."""
+    """Cierra el estado de una solicitud ya matriculada (§6.3).
+
+    La interfaz de secretaría debe usar :func:`matricula.aprobar_y_matricular`,
+    que ejecuta la transacción en MySQL antes de llamar a esta función.
+    """
     sesion = _exigir_secretaria()
     if carpeta_solicitud(id_solicitud, "aprobadas").exists():
         raise ErrorConflicto(f"La solicitud {id_solicitud} ya fue aprobada.")
@@ -633,15 +746,31 @@ def copiar_documento(
     return str(destino.relative_to(SOLICITUDES_DIR.parent.parent))
 
 
+def ruta_documento(ruta_relativa: str) -> Path:
+    """Convierte una ruta guardada en el JSON en una ruta absoluta."""
+    ruta = Path(ruta_relativa)
+    return ruta if ruta.is_absolute() else BASE_DIR / ruta
+
+
 def adjuntar_documento(
-    id_solicitud: str, origen: Path | str, indice_alumno: int = 0, tipo: str = "dni"
+    id_solicitud: str,
+    origen: Path | str,
+    indice_alumno: int = 0,
+    tipo: str = "dni",
+    indice_padre: int | None = None,
 ) -> str:
-    """Guarda un adjunto y lo registra en el JSON de la solicitud."""
+    """Guarda un adjunto y lo registra en el JSON de la solicitud.
+
+    ``tipo='dni'`` con ``indice_padre`` registra el DNI de un padre/apoderado;
+    sin él, registra el DNI del alumno indicado.
+    """
     datos = obtener(id_solicitud)
     if datos["estado"] not in ("Borrador", "Observada"):
         raise ErrorValidacion("Solo se pueden adjuntar documentos a una solicitud editable.")
     ruta = copiar_documento(origen, id_solicitud)
-    if tipo == "dni":
+    if tipo == "dni" and indice_padre is not None:
+        datos["padres"][indice_padre].setdefault("docs", {})["dni"] = ruta
+    elif tipo == "dni":
         datos["alumnos"][indice_alumno]["docs"]["dni"] = ruta
     elif tipo == "constancia":
         datos["alumnos"][indice_alumno]["docs"]["constancia"] = ruta
@@ -649,6 +778,67 @@ def adjuntar_documento(
         raise ErrorValidacion(f"Tipo de documento desconocido: {tipo}.")
     guardar_solicitud(datos)
     return ruta
+
+
+def aplicar_ocr_dni(
+    campos: dict[str, tuple[Any, int]], destino: dict[str, Any], tabla: str = "ESTUDIANTE"
+) -> list[str]:
+    """Aplica campos de OCR a una ficha; devuelve los nombres aplicados (§6.2.3)."""
+    aplicados: list[str] = []
+    for clave, (valor, _confianza) in campos.items():
+        if not clave.startswith(tabla + ".") or valor in (None, ""):
+            continue
+        campo = clave.split(".", 1)[1]
+        if campo == "DNI" and not _dni_valido(valor):
+            continue
+        destino[campo] = valor
+        aplicados.append(campo)
+    return aplicados
+
+
+def aplicar_ocr_constancia(
+    campos: dict[str, tuple[Any, int]],
+    logros: list[dict[str, tuple[Any, int]]],
+    constancia: dict[str, Any],
+) -> list[str]:
+    """Aplica campos y logros del OCR de la constancia a la solicitud."""
+    equivalencias = {
+        "CodigoVirtual": "codigo_virtual",
+        "DNI_Estudiante": "dni_estudiante",
+        "NivelEducativo": "nivel_educativo",
+        "FechaHoraEmision": "fecha_hora_emision",
+        "CodigoModularIE": "codigo_modular_ie",
+        "NombreIE": "nombre_ie",
+        "TipoIE": "tipo_ie",
+    }
+    aplicados: list[str] = []
+    for clave, (valor, _confianza) in campos.items():
+        if valor in (None, ""):
+            continue
+        campo = clave.split(".", 1)[-1]
+        destino = equivalencias.get(campo)
+        if destino:
+            constancia[destino] = valor
+            aplicados.append(destino)
+        elif campo == "CodigoModularIE":
+            constancia["codigo_modular_ie"] = valor
+            aplicados.append("codigo_modular_ie")
+        elif campo == "TipoIE":
+            constancia["tipo_ie"] = valor
+            aplicados.append("tipo_ie")
+    constancia["logros"] = []
+    for fila in logros:
+        valores = {clave.split(".", 1)[-1]: valor for clave, (valor, _) in fila.items()}
+        anio = str(valores.get("AñoEscolar", ""))
+        grado = valores.get("GradoCursado")
+        situacion = valores.get("SituacionFinal")
+        if re.fullmatch(r"\d{4}", anio) and grado and situacion:
+            constancia["logros"].append({
+                "anio": anio, "grado": grado, "situacion": situacion,
+                "codigo_modular_ie": valores.get("CodigoModularIE", ""),
+            })
+            aplicados.append(f"logro {anio}")
+    return aplicados
 
 
 def agregar_alumno(datos: dict[str, Any]) -> dict[str, Any]:
@@ -687,5 +877,20 @@ def resumen(datos: dict[str, Any]) -> list[tuple[str, str]]:
             f"{ficha.get('Nombres', '')} {ficha.get('ApellidoPaterno', '')} "
             f"({ficha.get('DNI', '')}) → {destino.get('nivel', '')} "
             f"{destino.get('grado', '')}",
+        ))
+        constancia = alumno.get("constancia", {})
+        if constancia.get("sin_constancia"):
+            filas.append((f"  constancia alumno {indice}", "Sin constancia (ingresante)"))
+        else:
+            filas.append((
+                f"  constancia alumno {indice}",
+                f"código {constancia.get('codigo_virtual') or '-'}, "
+                f"{len(constancia.get('logros', []))} logro(s)",
+            ))
+        docs = alumno.get("docs", {})
+        filas.append((
+            f"  documentos alumno {indice}",
+            f"DNI: {'sí' if docs.get('dni') else 'no'}, "
+            f"constancia: {'sí' if docs.get('constancia') else 'no'}",
         ))
     return filas
