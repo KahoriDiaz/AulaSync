@@ -46,6 +46,8 @@ class TestBuild(unittest.TestCase):
         contenido = _leer("build.bat")
         for fragmento in (
             "--noconfirm --onedir --windowed --name MatriculaApp",
+            "python -m PyInstaller --version",
+            "python -m PyInstaller %OPTS% %TESS% main.py",
             '--add-data "sql;sql"',
             "--collect-submodules mysql.connector",
             "--hidden-import mysql.connector.plugins.caching_sha2_password",

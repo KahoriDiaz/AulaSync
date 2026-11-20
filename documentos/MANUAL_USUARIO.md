@@ -55,8 +55,12 @@ Si no está disponible, el botón de OCR se desactiva y los campos se llenan man
 ## 7. Regenerar el entregable
 ```bat
 pip install -r requirements.txt
-build.bat
-empaquetar.bat
+.\build.bat
+.\empaquetar.bat
 ```
+
+En PowerShell hace falta el `.\` delante; en CMD basta con `build.bat`.
+
+No hace falta tener `pyinstaller.exe` en el PATH: `build.bat` usa `python -m PyInstaller`.
 
 El ZIP resultante es `Entrega5_GrupoXX.zip` (renombrar `XX` con el número de grupo).

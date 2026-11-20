@@ -72,5 +72,10 @@ Regenerar el entregable (desarrollo)
 2. build.bat        -> dist\MatriculaApp\MatriculaApp.exe
 3. empaquetar.bat   -> Entrega5_GrupoXX.zip
 
+En PowerShell los .bat de la carpeta actual se invocan con ./ delante:
+  .\build.bat
+  .\empaquetar.bat
+No hace falta tener pyinstaller.exe en el PATH: build.bat usa python -m PyInstaller.
+
 Pruebas (desarrollo):
 python -m unittest tests.test_fase4 tests.test_fase5 tests.test_fase6 tests.test_fase7 tests.test_ocr

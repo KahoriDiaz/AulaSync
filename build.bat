@@ -4,7 +4,7 @@ cd /d "%~dp0"
 
 echo === Registro de Matricula - generando MatriculaApp.exe ===
 
-where pyinstaller >nul 2>nul
+python -m PyInstaller --version >nul 2>nul
 if errorlevel 1 (
     echo Falta PyInstaller. Instale las dependencias primero:
     echo   pip install -r requirements.txt
@@ -20,7 +20,7 @@ set "OPTS=--noconfirm --onedir --windowed --name MatriculaApp --add-data "sql;sq
 set "TESS="
 if exist "tesseract\tessdata\spa.traineddata" set TESS=--add-data "tesseract;tesseract"
 
-pyinstaller %OPTS% %TESS% main.py
+python -m PyInstaller %OPTS% %TESS% main.py
 if errorlevel 1 (
     echo Error al generar el ejecutable.
     exit /b 1
