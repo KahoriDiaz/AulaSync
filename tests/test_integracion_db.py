@@ -50,12 +50,20 @@ class TestIntegracionBD(unittest.TestCase):
         )
         self.assertEqual(len(filas), 13, [f["TABLE_NAME"] for f in filas])
 
-    def test_cinco_procedimientos(self):
+    def test_cinco_procedimientos_originales_existen(self):
+        esperados = {
+            "sp_registrar_matricula", "sp_actualizar_estado_matricula",
+            "sp_buscar_estudiante", "sp_listar_hermanos", "sp_verificar_matriculados",
+        }
         filas = query(
             "SELECT ROUTINE_NAME FROM information_schema.ROUTINES "
             "WHERE ROUTINE_SCHEMA = DATABASE() AND ROUTINE_TYPE = 'PROCEDURE'"
         )
-        self.assertEqual(len(filas), 5, [f["ROUTINE_NAME"] for f in filas])
+        nombres = {f["ROUTINE_NAME"] for f in filas}
+        self.assertTrue(
+            esperados.issubset(nombres),
+            f"Faltan procedimientos: {esperados - nombres}",
+        )
 
     def test_conteos_de_datos_de_prueba(self):
         for tabla, esperado in CONTEOS_ESPERADOS.items():

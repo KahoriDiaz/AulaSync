@@ -218,26 +218,3 @@ CREATE INDEX idx_constancia_estudiante ON CONSTANCIA_LOGROS(DNI_Estudiante, Nive
 CREATE INDEX idx_tienepadres_padre ON TIENE_PADRES(DNI_Padre);
 CREATE INDEX idx_hermandad_hermanob ON HERMANDAD(DNI_HermanoB);
 CREATE INDEX idx_logro_ie ON LOGRO(CodigoModularIE);
-
--- Triggers trg_hermandad (validar DNI_HermanoA <> DNI_HermanoB)
-DELIMITER //
-CREATE TRIGGER trg_hermandad_bi
-BEFORE INSERT ON HERMANDAD
-FOR EACH ROW
-BEGIN
-    IF NEW.DNI_HermanoA = NEW.DNI_HermanoB THEN
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Un estudiante no puede ser hermano de sí mismo';
-    END IF;
-END//
-
-CREATE TRIGGER trg_hermandad_bu
-BEFORE UPDATE ON HERMANDAD
-FOR EACH ROW
-BEGIN
-    IF NEW.DNI_HermanoA = NEW.DNI_HermanoB THEN
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Un estudiante no puede ser hermano de sí mismo';
-    END IF;
-END//
-DELIMITER ;
