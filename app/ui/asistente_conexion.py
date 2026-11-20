@@ -148,9 +148,6 @@ class AsistenteConexion(tk.Tk):
                 "Usuarios demo: secretaria / secretaria123  |  padre_demo / padre123",
             )
             self.destroy()
-            from main import iniciar_aplicacion
-
-            iniciar_aplicacion()
         except Exception as exc:
             self.lbl_estado.config(text=f"Error: {exc}", foreground="#a31a1a")
             messagebox.showerror("Error", str(exc))
