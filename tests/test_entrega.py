@@ -184,11 +184,44 @@ class TestMarcaYTema(unittest.TestCase):
                 self.assertIn("aplicar_tema(", _leer(relativo))
 
     def test_sin_imagenes_de_marca(self) -> None:
+        """Sin logos ni imágenes cargadas: solo el módulo de íconos crea imágenes."""
         for ruta in (RAIZ / "app" / "ui").rglob("*.py"):
             texto = ruta.read_text(encoding="utf-8")
             with self.subTest(archivo=ruta.name):
                 self.assertIsNone(re.search(r"\blogo\b", texto, re.IGNORECASE))
-                self.assertNotIn("PhotoImage", texto)
+                if ruta.name != "iconos.py":
+                    self.assertNotIn("PhotoImage", texto)
+        iconos = _leer("app/ui/iconos.py")
+        self.assertNotIn("Image.open", iconos)
+        self.assertIsNone(re.search(r"\.(png|jpg|jpeg|gif|ico|svg)\b", iconos))
+
+    def test_sin_emojis_ni_simbolos_unicode_en_la_interfaz(self) -> None:
+        """Los íconos son dibujos de línea; ningún texto usa emojis ni símbolos (▶ ✓ ★ ...)."""
+        import unicodedata
+
+        permitidos = {"°"}  # grados escolares: 1.°, 2.°
+        for ruta in list((RAIZ / "app").rglob("*.py")) + [RAIZ / "main.py"]:
+            for caracter in set(ruta.read_text(encoding="utf-8")):
+                if caracter.isascii() or caracter in permitidos:
+                    continue
+                with self.subTest(archivo=ruta.name, caracter=repr(caracter)):
+                    self.assertNotIn(unicodedata.category(caracter), ("So", "Sk", "Cs", "Co"))
+
+    def test_todos_los_iconos_se_dibujan(self) -> None:
+        from app.ui.iconos import ICONOS, imagen
+
+        for nombre in ICONOS:
+            with self.subTest(icono=nombre):
+                dibujo = imagen(nombre, 18, "#0284C7")
+                self.assertEqual(dibujo.size, (18, 18))
+                self.assertIsNotNone(dibujo.getbbox())  # tiene trazos visibles
+
+    def test_los_botones_tienen_icono(self) -> None:
+        from app.ui.componentes import ICONOS_BOTONES
+        from app.ui.iconos import ICONOS
+
+        for _prefijo, nombre in ICONOS_BOTONES:
+            self.assertIn(nombre, ICONOS)
 
     def test_formularios_con_dni_usan_el_componente(self) -> None:
         for relativo in ("app/ui/login.py", "app/ui/secretaria/realizar_matricula.py",
