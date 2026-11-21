@@ -781,7 +781,7 @@ def registrar_contacto(
         "de": usuario or sesion.nombre_usuario,
         "texto": "Contactado: " + str(texto).strip(),
     })
-    datos["historial"].append({
+    datos.setdefault("historial", []).append({
         "fecha": datetime.now().isoformat(timespec="seconds"),
         "accion": "Registro de contacto con el apoderado",
         "usuario": sesion.nombre_usuario,
@@ -811,7 +811,7 @@ def aceptar_vacante(
         "de": usuario or sesion.nombre_usuario,
         "texto": "Vacante aceptada. " + documentos,
     })
-    datos["historial"].append({
+    datos.setdefault("historial", []).append({
         "fecha": ahora,
         "accion": "Vacante aceptada; el padre debe completar la matrícula",
         "usuario": sesion.nombre_usuario,
@@ -851,6 +851,11 @@ def rechazar(
         "fecha": datetime.now().isoformat(timespec="seconds"),
         "de": usuario or sesion.nombre_usuario,
         "texto": f"Rechazada: {motivo}",
+    })
+    datos.setdefault("historial", []).append({
+        "fecha": datetime.now().isoformat(timespec="seconds"),
+        "accion": "Rechazo de la solicitud",
+        "usuario": sesion.nombre_usuario,
     })
     _mover_carpeta(id_solicitud, "pendientes", "rechazadas")
     guardar_solicitud(datos, "rechazadas")
