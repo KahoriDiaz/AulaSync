@@ -131,7 +131,6 @@ class VentanaPrincipal(tk.Tk):
         frame = ttk.Frame(self.notebook)
         self.notebook.add(frame, text=titulo)
 
-        alto = frame.winfo_screenheight() if frame.winfo_screenheight() else 600
 
         marco_botonera = ttk.Frame(frame)
         marco_botonera.pack(fill="x", padx=5, pady=4)
@@ -198,13 +197,6 @@ class VentanaPrincipal(tk.Tk):
         frame.contenido.pack(fill="both", expand=True)
         return frame
 
-    # def _cargar_pestana_activa(self):
-    #     indice = self.notebook.index("end") - 1
-    #     if indice >= 0:
-    #         self.notebook.select(indice)
-    #     clave = self._clave_pestana_actual()
-    #     if clave and clave in self.pestanas:
-    #         self._recargar(clave)
     def _cargar_pestana_activa(self):
         # La primera pestaña ya está seleccionada; el evento <<NotebookTabChanged>>
         # puede no dispararse antes del mainloop, así que se carga explícitamente.
@@ -248,66 +240,6 @@ class VentanaPrincipal(tk.Tk):
             messagebox.showerror("Error al cargar los datos", str(exc), parent=self)
 
     # ---------------------------------------------------------------- CRUD acciones
-    # def _nuevo(self, clave, servicio, campos_alta):
-    #     valores = simpledialog.askstring(
-    #         "Nuevo registro",
-    #         "Ingrese los valores separados por coma (en orden de los campos del formulario).",
-    #     )
-    #     if not valores:
-    #         return
-    #     parametros = _limitar_dnis(campos_alta, [v.strip() for v in valores.split(",")])
-    #     try:
-    #         servicio.insertar_estudiante(parametros) if clave == "estudiantes" else (
-    #             servicio.insertar_padre(parametros) if clave == "padres" else servicio.insertar_institucion(parametros)
-    #         )
-    #     except Exception as exc:
-    #         messagebox.showerror("Error", str(exc))
-    #         return
-    #     self._recargar(clave)
-    #     messagebox.showinfo("Éxito", "Registro creado.")
-
-    # def _nuevo(self, clave, servicio, campos_alta):
-
-    #     # Formulario completo para registrar estudiantes.
-    #     if clave == "estudiantes":
-
-    #         def guardar_estudiante(parametros):
-    #             servicio.insertar_estudiante(parametros)
-    #             self._recargar("estudiantes")
-
-    #         self.formulario_estudiante = FormularioEstudiante(
-    #             self,
-    #             modo="nuevo",
-    #             al_guardar=guardar_estudiante
-    #         )
-    #         return
-
-    #     # Conservamos el registro anterior para padres e instituciones.
-    #     valores = simpledialog.askstring(
-    #         "Nuevo registro",
-    #         "Ingrese los valores separados por coma."
-    #     )
-
-    #     if not valores:
-    #         return
-
-    #     parametros = _limitar_dnis(
-    #         campos_alta,
-    #         [v.strip() for v in valores.split(",")]
-    #     )
-
-    #     try:
-    #         if clave == "padres":
-    #             servicio.insertar_padre(parametros)
-    #         elif clave == "instituciones":
-    #             servicio.insertar_institucion(parametros)
-
-    #     except Exception as exc:
-    #         messagebox.showerror("Error", str(exc))
-    #         return
-
-    #     self._recargar(clave)
-    #     messagebox.showinfo("Éxito", "Registro creado.")
 
     def _nuevo(self, clave, servicio, campos_alta):
 
@@ -368,105 +300,6 @@ class VentanaPrincipal(tk.Tk):
             "Registro creado.",
             parent=self
         )
-
-
-
-    # def _editar(self, clave, servicio, campos_alta):
-
-    #     frame = self.pestanas[clave]
-    #     sel = frame.tabla.seleccion()
-    #     if not sel:
-    #         messagebox.showwarning("Atención", "Seleccione un registro.")
-    #         return
-    #     valores = simpledialog.askstring(
-    #         "Editar registro",
-    #         "Ingrese los nuevos valores separados por coma.",
-    #     )
-    #     if not valores:
-    #         return
-    #     parametros = _limitar_dnis(campos_alta, [v.strip() for v in valores.split(",")])
-    #     try:
-    #         servicio.actualizar_estudiante(parametros) if clave == "estudiantes" else (
-    #             servicio.actualizar_padre(parametros) if clave == "padres" else servicio.actualizar_institucion(parametros)
-    #         )
-    #     except Exception as exc:
-    #         messagebox.showerror("Error", str(exc))
-    #         return
-    #     self._recargar(clave)
-    #     messagebox.showinfo("Éxito", "Registro actualizado.")
-
-
-    # def _editar(self, clave, servicio, campos_alta):
-
-    #     # Edición de estudiantes mediante el formulario completo.
-    #     if clave == "estudiantes":
-    #         frame = self.pestanas[clave]
-    #         seleccionado = frame.tabla.seleccion()
-
-    #         if not seleccionado:
-    #             messagebox.showwarning(
-    #                 "Atención",
-    #                 "Seleccione un estudiante para editar.",
-    #                 parent=self
-    #             )
-    #             return
-
-    #         datos = servicio.obtener_estudiante(seleccionado["DNI"])
-
-    #         if not datos:
-    #             messagebox.showerror(
-    #                 "Error",
-    #                 "No se encontró el estudiante seleccionado.",
-    #                 parent=self
-    #             )
-    #             return
-
-    #         def guardar_cambios(parametros):
-    #             servicio.actualizar_estudiante(parametros)
-    #             self._recargar("estudiantes")
-
-    #         self.formulario_estudiante = FormularioEstudiante(
-    #             self,
-    #             modo="editar",
-    #             datos=datos,
-    #             al_guardar=guardar_cambios
-    #         )
-    #         return
-
-    #     # Edición de padres e instituciones con el método anterior.
-    #     frame = self.pestanas[clave]
-    #     sel = frame.tabla.seleccion()
-
-    #     if not sel:
-    #         messagebox.showwarning("Atención", "Seleccione un registro.")
-    #         return
-
-    #     valores = simpledialog.askstring(
-    #         "Editar registro",
-    #         "Ingrese los nuevos valores separados por coma.",
-    #     )
-
-    #     if not valores:
-    #         return
-
-    #     parametros = _limitar_dnis(
-    #         campos_alta,
-    #         [v.strip() for v in valores.split(",")]
-    #     )
-
-    #     try:
-    #         if clave == "padres":
-    #             servicio.actualizar_padre(parametros)
-    #         elif clave == "instituciones":
-    #             servicio.actualizar_institucion(parametros)
-
-    #     except Exception as exc:
-    #         messagebox.showerror("Error", str(exc))
-    #         return
-
-    #     self._recargar(clave)
-    #     messagebox.showinfo("Éxito", "Registro actualizado.")
-
 
     def _editar(self, clave, servicio, campos_alta):
 
@@ -584,31 +417,6 @@ class VentanaPrincipal(tk.Tk):
             "Registro actualizado.",
             parent=self
         )
-
-
-
-    # def _eliminar(self, clave, servicio):
-    #     frame = self.pestanas[clave]
-    #     sel = frame.tabla.seleccion()
-    #     if not sel:
-    #         messagebox.showwarning("Atención", "Seleccione un registro.")
-    #         return
-    #     clave_pk = sel.get("DNI") or sel.get("CodigoModularIE")
-    #     if not clave_pk:
-    #         messagebox.showerror("Error", "No se pudo identificar la clave del registro.")
-    #         return
-    #     if not messagebox.askyesno("Confirmar", f"¿Eliminar el registro {clave_pk}?"):
-    #         return
-    #     try:
-    #         servicio.eliminar_estudiante(clave_pk) if clave == "estudiantes" else (
-    #             servicio.eliminar_padre(clave_pk) if clave == "padres" else servicio.eliminar_institucion(clave_pk)
-    #         )
-    #     except Exception as exc:
-    #         messagebox.showerror("Error", str(exc))
-    #         return
-    #     self._recargar(clave)
-    #     messagebox.showinfo("Éxito", "Registro eliminado.")
-
 
     def _eliminar(self, clave, servicio):
         frame = self.pestanas[clave]
