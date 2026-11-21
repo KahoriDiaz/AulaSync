@@ -10,6 +10,7 @@ from tkinter import messagebox, ttk
 
 from app.servicios import estudiantes, padres
 from app.ui.componentes import CampoBusqueda, Tabla
+from app.ui.secretaria.crud_generico import PestanaCrud
 from app.ui.secretaria.formulario_estudiante import FormularioEstudiante
 from app.ui.secretaria.formulario_padre import FormularioPadre
 
@@ -118,6 +119,19 @@ class Mantenimiento(ttk.Frame):
             eliminar=padres.eliminar_padre, formulario=FormularioPadre,
             nombre="padre o apoderado",
         ))
+        for clave, titulo in (
+            ("contacto", "Contacto de emergencia"),
+            ("ie", "Institución educativa"),
+            ("constancia", "Constancia de logros"),
+            ("logro", "Logro"),
+            ("matricula", "Matrícula"),
+            ("tiene_padres", "Tiene padres"),
+            ("hermandad", "Hermandad"),
+            ("nee", "Necesidades educativas especiales"),
+            ("hermanos_ie", "Hermanos en la I.E."),
+            ("secretaria", "Secretaria"),
+        ):
+            self._agregar(titulo, PestanaCrud(self.notebook, clave))
         self.notebook.bind("<<NotebookTabChanged>>", lambda _e: self.recargar())
 
     def _agregar(self, titulo: str, pestana: tk.Widget) -> None:
