@@ -55,9 +55,12 @@ def cupos_seccion(anio: int, nivel: str, grado: str, seccion: str) -> dict[str, 
     """Devuelve matriculados y vacantes de una sección (30 por sección)."""
     conjuntos = db.call_proc("sp_cupos_seccion", (anio, nivel, grado, seccion))
     fila = conjuntos[0][0] if conjuntos and conjuntos[0] else {}
+    matriculados = int(fila.get("Matriculados") or 0)
+    vacantes = fila.get("Vacantes")
     return {
-        "Matriculados": int(fila.get("Matriculados") or 0),
-        "Vacantes": int(fila.get("Vacantes") or 30),
+        "Matriculados": matriculados,
+        # Una sección llena tiene 0 vacantes: no usar "or", que lo cambiaría a 30.
+        "Vacantes": int(vacantes) if vacantes is not None else max(0, 30 - matriculados),
     }
 
 
