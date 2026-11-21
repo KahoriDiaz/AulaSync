@@ -206,41 +206,28 @@ class VentanaPrincipal(tk.Tk):
     #     if clave and clave in self.pestanas:
     #         self._recargar(clave)
     def _cargar_pestana_activa(self):
-        if self.notebook.index("end") > 0:
-            self.notebook.select(0)
-            self._recargar("estudiantes")
+        # La primera pestaña ya está seleccionada; el evento <<NotebookTabChanged>>
+        # puede no dispararse antes del mainloop, así que se carga explícitamente.
+        self.mostrar_pestana("estudiantes")
 
     def _clave_pestana_actual(self):
-        pestaña = self.notebook.select()
-        if not pestaña:
-            return None
-        texto = self.notebook.tab(pestaña, "text")
+        """Clave de la pestaña visible, comparando el widget (no el título)."""
+        seleccionada = self.notebook.select()
         for clave, frame in self.pestanas.items():
-            # Comparar por título conocido
-            if clave == "estudiantes" and texto == "Estudiantes":
-                return clave
-            if clave == "padres" and texto == "Padres / Apoderados":
-                return clave
-            if clave == "bandeja" and texto == "Bandeja de solicitudes":
-                return clave
-            if clave == "distribucion" and texto == "Distribución":
-                return clave
-            if clave == "listas" and texto == "Listas y comparación":
-                return clave
-            if clave == "reportes" and texto == "Reportes (10 consultas)":
-                return clave
-            if clave == "panel" and texto == "Panel de relaciones":
+            if str(frame) == seleccionada:
                 return clave
         return None
 
     def mostrar_pestana(self, clave):
-        for frame in self.pestanas.values():
-            pass
-        for i in range(self.notebook.index("end")):
-            self.notebook.select(i)
-            if self._clave_pestana_actual() == clave:
-                self._recargar(clave)
-                return
+        """Selecciona y recarga solo la pestaña pedida."""
+        frame = self.pestanas.get(clave)
+        if frame is None:
+            return
+        if self._clave_pestana_actual() == clave:
+            # Ya visible: select() no dispara el evento, se recarga a mano.
+            self._recargar(clave)
+        else:
+            self.notebook.select(frame)  # <<NotebookTabChanged>> hace la recarga
 
     def _recargar(self, clave):
         frame = self.pestanas.get(clave)
