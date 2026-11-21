@@ -7,12 +7,12 @@
 from __future__ import annotations
 
 import tkinter as tk
-from tkinter import messagebox, ttk
+from tkinter import ttk
 
 from app.errores import ErrorApp
 from app.servicios import auth
 from app.ui.componentes import entry_dni
-from app.ui.tema import EXITO, INFO, PELIGRO, aplicar_tema, separador, tarjeta
+from app.ui.tema import EXITO, PELIGRO, aplicar_tema, separador, tarjeta
 
 
 class VentanaLogin(tk.Toplevel):
@@ -91,7 +91,12 @@ class VentanaLogin(tk.Toplevel):
             self.lbl_msg.config(text="Ingrese DNI y clave.", foreground=PELIGRO)
             return
 
-        resultado = auth.login(dni, clave)
+        try:
+            resultado = auth.login(dni, clave)
+        except ErrorApp as exc:
+            # Error de conexión o de consulta: se informa sin cerrar el login.
+            self.lbl_msg.config(text=str(exc), foreground=PELIGRO)
+            return
         if resultado.exito:
             self.lbl_msg.config(text=resultado.mensaje, foreground=EXITO)
             self.after(600, lambda: self.exito_callback())
