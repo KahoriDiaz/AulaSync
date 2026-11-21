@@ -12,11 +12,11 @@ from typing import Any
 
 from app import db
 
-_ANIO_ACTUAL = date.today().year
-
+# Las consultas con %s reciben el año escolar en curso al ejecutarse (no al
+# importar el módulo), para que el panel no quede fijo en un año anterior.
 INDICADORES: tuple[tuple[str, str], ...] = (
     ("Estudiantes", "SELECT COUNT(*) AS total FROM ESTUDIANTE"),
-    ("Matrículas activas", f"SELECT COUNT(*) AS total FROM MATRICULA WHERE Estado = 'Matriculado' AND `AñoEscolar` = {_ANIO_ACTUAL}"),
+    ("Matrículas activas", "SELECT COUNT(*) AS total FROM MATRICULA WHERE Estado = 'Matriculado' AND `AñoEscolar` = %s"),
     ("Padres / apoderados", "SELECT COUNT(*) AS total FROM PADRE_APODERADO"),
     ("Instituciones educativas", "SELECT COUNT(*) AS total FROM INSTITUCION_EDUCATIVA"),
     ("Constancias de logros", "SELECT COUNT(*) AS total FROM CONSTANCIA_LOGROS"),
@@ -27,7 +27,7 @@ INDICADORES: tuple[tuple[str, str], ...] = (
     ("Hermanos en la I.E.", "SELECT COUNT(*) AS total FROM ESTUDIANTE_HERMANOS_IE"),
 )
 
-SQL_DETALLE = f"""
+SQL_DETALLE = """
 SELECT e.DNI,
        CONCAT(e.ApellidoPaterno, ' ', e.ApellidoMaterno, ', ', e.Nombres) AS Estudiante,
        m.`AñoEscolar`, m.Nivel, m.Grado, m.Seccion, m.Estado,
@@ -43,7 +43,7 @@ INNER JOIN ESTUDIANTE e ON m.DNI_Estudiante = e.DNI
 INNER JOIN PADRE_APODERADO p ON m.DNI_Responsable = p.DNI
 INNER JOIN SECRETARIA s ON m.DNI_Secretaria = s.DNI
 LEFT JOIN INSTITUCION_EDUCATIVA i ON e.CodigoModularIE = i.CodigoModularIE
-WHERE m.`AñoEscolar` = {_ANIO_ACTUAL}
+WHERE m.`AñoEscolar` = %s
 ORDER BY e.ApellidoPaterno, e.ApellidoMaterno
 """
 
@@ -51,15 +51,16 @@ ORDER BY e.ApellidoPaterno, e.ApellidoMaterno
 def indicadores() -> list[dict[str, Any]]:
     """Devuelve los conteos de cada tabla y relación del modelo."""
     filas: list[dict[str, Any]] = []
+    anio = date.today().year
     for nombre, sql in INDICADORES:
-        fila = db.query_uno(sql)
+        fila = db.query_uno(sql, (anio,) if "%s" in sql else ())
         filas.append({"Indicador": nombre, "Valor": int((fila or {}).get("total") or 0)})
     return filas
 
 
 def detalle() -> list[dict[str, Any]]:
     """Devuelve matrículas con el detalle de las entidades relacionadas."""
-    return db.query(SQL_DETALLE)
+    return db.query(SQL_DETALLE, (date.today().year,))
 
 
 def columnas_detalle() -> tuple[str, ...]:
