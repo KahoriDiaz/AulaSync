@@ -43,6 +43,11 @@ DROP PROCEDURE IF EXISTS sp_usuario_cambiar_clave;
 DROP PROCEDURE IF EXISTS sp_usuario_cambiar_estado;
 DROP PROCEDURE IF EXISTS sp_cupos_seccion;
 DROP PROCEDURE IF EXISTS sp_padron;
+DROP PROCEDURE IF EXISTS sp_secretaria_insertar;
+DROP PROCEDURE IF EXISTS sp_secretaria_actualizar;
+DROP PROCEDURE IF EXISTS sp_secretaria_eliminar;
+DROP PROCEDURE IF EXISTS sp_contacto_insertar;
+DROP PROCEDURE IF EXISTS sp_contacto_eliminar;
 
 DROP FUNCTION IF EXISTS fn_grado_siguiente;
 
@@ -898,6 +903,92 @@ BEGIN
     END IF;
 
     RETURN v_siguiente;
+END//
+
+-- ===========================================================================
+-- Mantenimiento de SECRETARIA y CONTACTO_EMERGENCIA
+-- ===========================================================================
+CREATE PROCEDURE sp_secretaria_insertar(
+    IN p_dni              CHAR(8),
+    IN p_nombres          VARCHAR(50),
+    IN p_apellido_paterno VARCHAR(30),
+    IN p_apellido_materno VARCHAR(30)
+)
+BEGIN
+    IF p_dni IS NULL OR p_dni NOT REGEXP '^[0-9]{8}$' THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El DNI de la secretaria debe tener 8 dígitos';
+    END IF;
+    IF TRIM(IFNULL(p_nombres, '')) = '' OR TRIM(IFNULL(p_apellido_paterno, '')) = ''
+       OR TRIM(IFNULL(p_apellido_materno, '')) = '' THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Complete los nombres y apellidos de la secretaria';
+    END IF;
+    IF EXISTS (SELECT 1 FROM SECRETARIA WHERE DNI = p_dni) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'La secretaria ya está registrada';
+    END IF;
+    INSERT INTO SECRETARIA (DNI, Nombres, ApellidoPaterno, ApellidoMaterno)
+    VALUES (p_dni, TRIM(p_nombres), TRIM(p_apellido_paterno), TRIM(p_apellido_materno));
+END//
+
+CREATE PROCEDURE sp_secretaria_actualizar(
+    IN p_dni              CHAR(8),
+    IN p_nombres          VARCHAR(50),
+    IN p_apellido_paterno VARCHAR(30),
+    IN p_apellido_materno VARCHAR(30)
+)
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM SECRETARIA WHERE DNI = p_dni) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'La secretaria no existe';
+    END IF;
+    IF TRIM(IFNULL(p_nombres, '')) = '' OR TRIM(IFNULL(p_apellido_paterno, '')) = ''
+       OR TRIM(IFNULL(p_apellido_materno, '')) = '' THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Complete los nombres y apellidos de la secretaria';
+    END IF;
+    UPDATE SECRETARIA
+    SET Nombres = TRIM(p_nombres),
+        ApellidoPaterno = TRIM(p_apellido_paterno),
+        ApellidoMaterno = TRIM(p_apellido_materno)
+    WHERE DNI = p_dni;
+END//
+
+CREATE PROCEDURE sp_secretaria_eliminar(IN p_dni CHAR(8))
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM SECRETARIA WHERE DNI = p_dni) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'La secretaria no existe';
+    END IF;
+    IF EXISTS (SELECT 1 FROM MATRICULA WHERE DNI_Secretaria = p_dni) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'La secretaria registró matrículas y no se puede eliminar';
+    END IF;
+    IF EXISTS (SELECT 1 FROM USUARIO WHERE DNI = p_dni) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'La secretaria tiene un usuario del sistema y no se puede eliminar';
+    END IF;
+    DELETE FROM SECRETARIA WHERE DNI = p_dni;
+END//
+
+CREATE PROCEDURE sp_contacto_insertar(
+    IN p_nombre_contacto_emergencia VARCHAR(110),
+    IN p_celular_emergencia         CHAR(9)
+)
+BEGIN
+    IF TRIM(IFNULL(p_nombre_contacto_emergencia, '')) = '' THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Ingrese el nombre del contacto de emergencia';
+    END IF;
+    IF p_celular_emergencia IS NULL OR p_celular_emergencia NOT REGEXP '^[0-9]{9}$' THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El celular de emergencia debe tener 9 dígitos';
+    END IF;
+    INSERT INTO CONTACTO_EMERGENCIA (NombreContactoEmergencia, CelularEmergencia)
+    VALUES (TRIM(p_nombre_contacto_emergencia), p_celular_emergencia);
+    SELECT LAST_INSERT_ID() AS id_contacto;
+END//
+
+CREATE PROCEDURE sp_contacto_eliminar(IN p_id_contacto INT UNSIGNED)
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM CONTACTO_EMERGENCIA WHERE IdContactoEmergencia = p_id_contacto) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El contacto de emergencia no existe';
+    END IF;
+    IF EXISTS (SELECT 1 FROM ESTUDIANTE WHERE IdContactoEmergencia = p_id_contacto) THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El contacto está asignado a uno o más estudiantes';
+    END IF;
+    DELETE FROM CONTACTO_EMERGENCIA WHERE IdContactoEmergencia = p_id_contacto;
 END//
 
 DELIMITER ;
