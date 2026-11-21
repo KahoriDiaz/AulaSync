@@ -23,7 +23,7 @@ class Distribucion(ttk.Frame):
         self.filtro_var = tk.StringVar(value="Todas las secciones")
         self.seccion_var = tk.StringVar(value="A")
         self._construir()
-        self.recargar()
+        # Los datos se cargan al abrir la pestaña (recargar), no al construirla.
 
     def _construir(self) -> None:
         filtros = ttk.Frame(self)
