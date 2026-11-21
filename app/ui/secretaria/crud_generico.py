@@ -24,7 +24,7 @@ class FormularioGenerico(tk.Toplevel):
         self.al_guardar = al_guardar
         self.datos = datos
         self.editando = datos is not None
-        self.title(("Editar " if self.editando else "Nuevo: ") + tabla.nombre)
+        self.title(("AulaSync - Editar " if self.editando else "AulaSync - Nuevo: ") + tabla.nombre)
         self.resizable(False, False)
         self.transient(parent)
         self.grab_set()

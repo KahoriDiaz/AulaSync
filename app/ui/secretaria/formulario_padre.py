@@ -22,9 +22,9 @@ class FormularioPadre(tk.Toplevel):
         self.controles = {}
 
         self.title(
-            "Registrar padre / apoderado"
+            "AulaSync - Registrar padre / apoderado"
             if modo == "nuevo"
-            else "Editar padre / apoderado"
+            else "AulaSync - Editar padre / apoderado"
         )
 
         self.geometry("850x620")

@@ -18,8 +18,8 @@ class FormularioEstudiante(tk.Toplevel):
         self.campos = {}
 
         self.title(
-            "Registrar estudiante" if modo == "nuevo"
-            else "Editar estudiante"
+            "AulaSync - Registrar estudiante" if modo == "nuevo"
+            else "AulaSync - Editar estudiante"
         )
         self.geometry("950x720")
         self.minsize(800, 600)
