@@ -220,11 +220,31 @@ def verificar(database: str = "bd_matricula") -> None:
         cnx.close()
 
 
-def main() -> None:
-    base_dir = config.RECURSOS_DIR
-    # Las credenciales de root se piden en el asistente de la UI; aqui solo se
-    # ejecuta si se invoca directamente con valores por defecto (root/root).
-    ejecutar_todos_los_scripts(base_dir, config.password or "root")
+def main(argv: list[str] | None = None) -> None:
+    """Instala la base desde la consola: ``python -m app.setup_bd``.
+
+    La clave del administrador se pide con ``getpass`` y nunca se guarda.
+    """
+    import argparse
+    import getpass
+
+    parser = argparse.ArgumentParser(description="Crea bd_matricula y carga los scripts 01 a 06.")
+    parser.add_argument("--host", default=config.host)
+    parser.add_argument("--port", type=int, default=config.port)
+    parser.add_argument("--root-user", default="root")
+    parser.add_argument("--app-password", default="matricula_app")
+    args = parser.parse_args(argv)
+
+    root_password = getpass.getpass(f"Clave de {args.root_user}@{args.host}: ")
+    crear_base_y_usuario(args.host, args.port, args.root_user, root_password, args.app_password)
+    ejecutar_todos_los_scripts(
+        config.RECURSOS_DIR, args.host, args.port, args.root_user, root_password,
+        args.app_password,
+    )
+    config.guardar({
+        "host": args.host, "port": args.port, "user": APP_USER,
+        "password": args.app_password, "database": "bd_matricula",
+    })
     print("--- Verificacion ---")
     verificar()
 
