@@ -9,8 +9,8 @@ password =
 database = bd_matricula
 
 [app]
-# URL oficial para consultar una constancia SIAGIE (configurable por el revisor)
-url_consulta_constancia =
+# Página oficial del MINEDU para verificar el código virtual de la constancia de logros
+url_consulta_constancia = https://constancia.minedu.gob.pe/
 # Ruta completa a tesseract.exe (opcional; solo para el autocompletado OCR).
 # Si no se instala Tesseract, el botón de OCR se desactiva y los datos se llenan a mano.
 tesseract_cmd =

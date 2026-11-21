@@ -230,13 +230,109 @@ def _guardar_constancia(
         )
 
 
-def validar_datos(datos: dict[str, Any]) -> list[str]:
-    """Reglas mínimas antes de llamar a los procedimientos (los triggers validan el resto)."""
+def _digitos(valor: Any, cantidad: int) -> bool:
+    texto = str(valor or "")
+    return texto.isdigit() and len(texto) == cantidad
+
+
+def _fecha(valor: Any) -> date | None:
+    if isinstance(valor, date):
+        return valor
+    try:
+        return date.fromisoformat(str(valor or "")[:10])
+    except ValueError:
+        return None
+
+
+def edad(nacimiento: date, hoy: date | None = None) -> int:
+    hoy = hoy or date.today()
+    return hoy.year - nacimiento.year - ((hoy.month, hoy.day) < (nacimiento.month, nacimiento.day))
+
+
+def validar_estudiante(estudiante: dict[str, Any], nuevo: bool = True) -> list[str]:
+    """Mismas reglas que el formulario de estudiante."""
     errores: list[str] = []
+    obligatorios = [
+        ("DNI", "DNI"), ("Sexo", "sexo"), ("Nombres", "nombres"),
+        ("ApellidoPaterno", "apellido paterno"), ("ApellidoMaterno", "apellido materno"),
+        ("FechaNacimiento", "fecha de nacimiento"), ("DistritoNacimiento", "distrito de nacimiento"),
+        ("ProvinciaNacimiento", "provincia de nacimiento"),
+        ("DepartamentoNacimiento", "departamento de nacimiento"),
+        ("PaisNacimiento", "país de nacimiento"), ("DomicilioActual", "domicilio actual"),
+        ("DistritoDomicilio", "distrito de domicilio"),
+    ]
+    if nuevo:
+        obligatorios += [
+            ("NombreContactoEmergencia", "nombre del contacto de emergencia"),
+            ("CelularEmergencia", "celular del contacto de emergencia"),
+        ]
+    for campo, texto in obligatorios:
+        if not str(estudiante.get(campo) or "").strip():
+            errores.append(f"Estudiante: falta el {texto}.")
+    if estudiante.get("DNI") and not _digitos(estudiante["DNI"], 8):
+        errores.append("Estudiante: el DNI debe tener 8 dígitos.")
+    if estudiante.get("Sexo") and estudiante["Sexo"] not in ("M", "F"):
+        errores.append("Estudiante: el sexo debe ser M o F.")
+    nacimiento = _fecha(estudiante.get("FechaNacimiento"))
+    if estudiante.get("FechaNacimiento") and (nacimiento is None or nacimiento > date.today()):
+        errores.append("Estudiante: la fecha de nacimiento no es válida.")
+    for campo, texto in (("Celular", "celular"), ("CelularEmergencia", "celular de emergencia")):
+        if estudiante.get(campo) and not _digitos(estudiante[campo], 9):
+            errores.append(f"Estudiante: el {texto} debe tener 9 dígitos.")
+    try:
+        lugar = int(estudiante.get("LugarQueOcupa") or 1)
+        if not 1 <= lugar <= 255:
+            raise ValueError
+    except (TypeError, ValueError):
+        errores.append("Estudiante: el lugar que ocupa debe ser un número entre 1 y 255.")
+    tipo = estudiante.get("TipoAtencion")
+    if tipo and tipo not in ("ESSALUD", "SIS", "Otros"):
+        errores.append("Estudiante: tipo de atención no válido.")
+    return errores
+
+
+def validar_padre(padre: dict[str, Any], nombre: str = "Padre") -> list[str]:
+    """Mismas reglas que el formulario de padre/apoderado (mayor de 18 años)."""
+    errores: list[str] = []
+    for campo, texto in (
+        ("DNI", "DNI"), ("Sexo", "sexo"), ("Nombres", "nombres"),
+        ("ApellidoPaterno", "apellido paterno"), ("ApellidoMaterno", "apellido materno"),
+        ("FechaNacimiento", "fecha de nacimiento"), ("GradoInstruccion", "grado de instrucción"),
+        ("DomicilioActual", "domicilio actual"), ("DistritoDomicilio", "distrito de domicilio"),
+        ("Celular", "celular"),
+    ):
+        if not str(padre.get(campo) or "").strip():
+            errores.append(f"{nombre}: falta el {texto}.")
+    if padre.get("DNI") and not _digitos(padre["DNI"], 8):
+        errores.append(f"{nombre}: el DNI debe tener 8 dígitos.")
+    if padre.get("Celular") and not _digitos(padre["Celular"], 9):
+        errores.append(f"{nombre}: el celular debe tener 9 dígitos.")
+    if padre.get("TelefonoFijo") and not _digitos(padre["TelefonoFijo"], 9):
+        errores.append(f"{nombre}: el teléfono fijo debe tener 9 dígitos.")
+    if padre.get("GradoInstruccion") and padre["GradoInstruccion"] not in (
+        "Primaria", "Secundaria", "Superior", "Otros"
+    ):
+        errores.append(f"{nombre}: grado de instrucción no válido.")
+    nacimiento = _fecha(padre.get("FechaNacimiento"))
+    if padre.get("FechaNacimiento"):
+        if nacimiento is None:
+            errores.append(f"{nombre}: la fecha de nacimiento no es válida.")
+        elif edad(nacimiento) < 18:
+            errores.append(f"{nombre}: debe tener 18 años o más.")
+    correo = str(padre.get("CorreoElectronico") or "").strip()
+    if correo and "@" not in correo:
+        errores.append(f"{nombre}: el correo electrónico no es válido.")
+    return errores
+
+
+def validar_datos(datos: dict[str, Any]) -> list[str]:
+    """Reglas antes de llamar a los procedimientos (los triggers validan el resto)."""
     estudiante = datos.get("estudiante") or {}
+    errores: list[str] = validar_estudiante(estudiante, nuevo=not datos.get("estudiante_existe"))
     dni = str(estudiante.get("DNI") or "")
-    if not (dni.isdigit() and len(dni) == 8):
-        errores.append("El DNI del estudiante debe tener 8 dígitos.")
+    for clave, nombre in (("padre", "Padre"), ("madre", "Madre")):
+        if datos.get(clave):
+            errores.extend(validar_padre(datos[clave], nombre))
     padres = [p for p in (datos.get("padre"), datos.get("madre")) if p]
     if not padres:
         errores.append("Registre al menos al padre o a la madre.")

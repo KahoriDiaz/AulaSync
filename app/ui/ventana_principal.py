@@ -14,6 +14,7 @@ from app.ui.tema import aplicar_tema, cabecera
 from app.ui.secretaria.consultas import Consultas
 from app.ui.secretaria.mantenimiento import Mantenimiento
 from app.ui.secretaria.panel import PanelRelaciones
+from app.ui.secretaria.realizar_matricula import RealizarMatricula
 
 
 class VentanaPrincipal(tk.Tk):
@@ -55,6 +56,7 @@ class VentanaPrincipal(tk.Tk):
         self.pestanas: dict[str, tk.Widget] = {}
         self._agregar("inicio", "Inicio", PanelRelaciones(self.notebook))
         self._agregar("mantenimiento", "Mantenimiento", Mantenimiento(self.notebook))
+        self._agregar("matricula", "Realizar matrícula", RealizarMatricula(self.notebook))
         self._agregar("consultas", "Consultas", Consultas(self.notebook))
         self.notebook.bind("<<NotebookTabChanged>>", self._al_cambiar_pestana)
 

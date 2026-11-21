@@ -43,6 +43,9 @@ def _puerto(valor: str | None, por_defecto: int) -> int:
     return puerto if 0 < puerto < 65536 else por_defecto
 
 
+URL_MINEDU = "https://constancia.minedu.gob.pe/"
+
+
 class Configuracion:
     def __init__(self) -> None:
         # Rutas expuestas también en la instancia para servicios y OCR.
@@ -56,7 +59,7 @@ class Configuracion:
         self.user = os.getenv("DB_USER", "matricula_app")
         self.password = os.getenv("DB_PASSWORD", "matricula_app")
         self.database = os.getenv("DB_NAME", "bd_matricula")
-        self.url_consulta_constancia = os.getenv("URL_CONSULTA_CONSTANCIA", "")
+        self.url_consulta_constancia = os.getenv("URL_CONSULTA_CONSTANCIA", URL_MINEDU)
         self.tesseract_cmd = os.getenv("TESSERACT_CMD", "")
         self._cargar()
 
@@ -71,8 +74,10 @@ class Configuracion:
                 self.password = sec.get("password", self.password)
                 self.database = sec.get("database", self.database)
             if self.parser.has_section("app"):
-                self.url_consulta_constancia = self.parser["app"].get(
-                    "url_consulta_constancia", self.url_consulta_constancia
+                # Un valor vacío en config.ini conserva la página oficial del MINEDU.
+                self.url_consulta_constancia = (
+                    self.parser["app"].get("url_consulta_constancia", "").strip()
+                    or self.url_consulta_constancia
                 )
                 self.tesseract_cmd = self.parser["app"].get(
                     "tesseract_cmd", self.tesseract_cmd
