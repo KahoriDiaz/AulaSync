@@ -1,5 +1,5 @@
 -- Script 05: Datos de prueba (Entrega 4, sin modificar DNIs ni valores)
--- + Usuarios demo (§14.5) con marcadores {{HASH_SECRETARIA}} y {{HASH_SECRETARIA2}}
+-- + Usuarios demo (§14.5) con el hash PBKDF2 de la clave secretaria123 ya incluido
 -- que setup_bd.py reemplaza con hashes generados por app/seguridad.py.
 USE bd_matricula;
 
@@ -117,7 +117,7 @@ INSERT INTO ESTUDIANTE_HERMANOS_IE (DNI_Estudiante, NivelHermano) VALUES
     ('78120005', 'Inicial'),
     ('78120006', 'Primaria');
 
--- Usuarios demo: setup_bd.py reemplaza {{HASH_SECRETARIA}} y {{HASH_SECRETARIA2}}
+-- Usuarios demo (clave: secretaria123); el mismo script sirve para el asistente y para ejecutarlo a mano
 INSERT INTO USUARIO (NombreUsuario, ClaveHash, Rol, Estado, DNI, UltimoAcceso) VALUES
-    ('secretaria', '{{HASH_SECRETARIA}}', 'Secretaria', 'Activo', '87733221', NULL),
-    ('secretaria2', '{{HASH_SECRETARIA2}}', 'Secretaria', 'Activo', '87733222', NULL);
+    ('secretaria', 'pbkdf2$200000$5963182383439fb212bce924957084ed$cb007513cbd9e5ceca5db182f36c9b795042211dc2d683ec2e0725570ace6e7a', 'Secretaria', 'Activo', '87733221', NULL),
+    ('secretaria2', 'pbkdf2$200000$5963182383439fb212bce924957084ed$cb007513cbd9e5ceca5db182f36c9b795042211dc2d683ec2e0725570ace6e7a', 'Secretaria', 'Activo', '87733222', NULL);

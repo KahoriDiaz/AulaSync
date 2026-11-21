@@ -1,8 +1,8 @@
 """Asistente de base de datos: crea bd_matricula, el usuario matricula_app y carga los scripts SQL.
 
 Respeta el comando DELIMITER de los scripts (el conector MySQL no lo entiende).
-Reemplaza los marcadores {{HASH_SECRETARIA}} y {{HASH_SECRETARIA2}} de 05_datos_prueba.sql
-con los hashes generados por app/seguridad.py.
+Los scripts de sql/ son idénticos a los de script_bd/: 05_datos_prueba.sql ya trae
+el hash PBKDF2 de la clave demo (secretaria123).
 """
 from __future__ import annotations
 
@@ -12,7 +12,6 @@ from typing import Any
 import mysql.connector
 
 from app.config import config
-from app.seguridad import hash_clave
 
 SCRIPTS = [
     "sql/01_esquema.sql",
@@ -170,11 +169,6 @@ def ejecutar_todos_los_scripts(
     database: str = "bd_matricula",
 ) -> None:
     """Ejecuta los scripts 01 a 06 en orden. El 01 sin BD; el resto sobre bd_matricula."""
-    replacements = {
-        "{{HASH_SECRETARIA}}": hash_clave("secretaria123"),
-        "{{HASH_SECRETARIA2}}": hash_clave("secretaria123"),
-    }
-
     # 01 crea la base de datos: se ejecuta sin seleccionar una BD destino.
     cnx = conectar_root(host, port, root_user, root_password)
     try:
@@ -188,7 +182,7 @@ def ejecutar_todos_los_scripts(
         cnx = conectar_root(host, port, root_user, root_password)
         try:
             cnx.database = database
-            n = ejecutar_archivo(cnx, base_dir / ruta_rel, replacements)
+            n = ejecutar_archivo(cnx, base_dir / ruta_rel)
             cnx.commit()
             print(f"[{ruta_rel}] -> {n} sentencias ejecutadas.")
         finally:

@@ -1,5 +1,5 @@
 -- Script 02: Tabla de soporte USUARIO (inicio de sesión del aplicativo)
--- Solo rol 'Secretaria'.
+-- Solo rol 'Secretaria' (sin Padre, sin Administrador).
 -- No hay FK a SECRETARIA: la validación del DNI de la secretaria se hace con trigger.
 -- No pertenece a las 12 tablas del modelo de la funcionalidad.
 USE bd_matricula;

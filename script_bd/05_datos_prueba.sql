@@ -117,7 +117,7 @@ INSERT INTO ESTUDIANTE_HERMANOS_IE (DNI_Estudiante, NivelHermano) VALUES
     ('78120005', 'Inicial'),
     ('78120006', 'Primaria');
 
--- Usuarios demo (clave: secretaria123). Este script se ejecuta a mano, sin setup_bd.py
+-- Usuarios demo (clave: secretaria123); el mismo script sirve para el asistente y para ejecutarlo a mano
 INSERT INTO USUARIO (NombreUsuario, ClaveHash, Rol, Estado, DNI, UltimoAcceso) VALUES
     ('secretaria', 'pbkdf2$200000$5963182383439fb212bce924957084ed$cb007513cbd9e5ceca5db182f36c9b795042211dc2d683ec2e0725570ace6e7a', 'Secretaria', 'Activo', '87733221', NULL),
     ('secretaria2', 'pbkdf2$200000$5963182383439fb212bce924957084ed$cb007513cbd9e5ceca5db182f36c9b795042211dc2d683ec2e0725570ace6e7a', 'Secretaria', 'Activo', '87733222', NULL);
