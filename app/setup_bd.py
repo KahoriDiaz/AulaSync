@@ -131,9 +131,15 @@ def crear_base_y_usuario(
             cursor.execute(
                 f"CREATE DATABASE `{database}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci"
             )
+            # Sin forzar mysql_native_password: MySQL 8.4+ lo trae desactivado y
+            # mysql-connector ya soporta caching_sha2_password (el predeterminado).
             cursor.execute(
-                f"CREATE USER IF NOT EXISTS '{APP_USER}'@'localhost' "
-                f"IDENTIFIED WITH mysql_native_password BY %s",
+                f"CREATE USER IF NOT EXISTS '{APP_USER}'@'localhost' IDENTIFIED BY %s",
+                (app_password,),
+            )
+            # Si el usuario ya existÃ­a con otra clave, se alinea con config.ini.
+            cursor.execute(
+                f"ALTER USER '{APP_USER}'@'localhost' IDENTIFIED BY %s",
                 (app_password,),
             )
             # MÃ­nimo privilegio: la aplicaciÃ³n solo lee (SELECT) y llama a los
