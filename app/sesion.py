@@ -10,8 +10,6 @@ import time
 from dataclasses import dataclass
 from typing import Optional
 
-from app.seguridad import verificar_clave
-
 INTENTOS_MAXIMOS = 5
 TIEMPO_BLOQUEO_SEGUNDOS = 30
 
