@@ -11,7 +11,7 @@ from typing import Any
 
 from app import db
 from app.errores import ErrorValidacion
-from app.servicios import matricula, solicitudes
+from app.servicios import matricula
 
 COLUMNAS_CUPOS = ("AñoEscolar", "Nivel", "Grado", "Seccion", "Matriculados", "Vacantes")
 COLUMNAS_PADRON = ("DNI", "ApellidoPaterno", "ApellidoMaterno", "Nombres",
@@ -30,11 +30,11 @@ def anios() -> list[int]:
 
 
 def niveles() -> tuple[str, ...]:
-    return tuple(solicitudes.NIVELES)
+    return tuple(matricula.NIVELES)
 
 
 def grados(nivel: str) -> tuple[str, ...]:
-    return solicitudes.NIVELES.get(nivel, ())
+    return matricula.NIVELES.get(nivel, ())
 
 
 def secciones(nivel: str) -> tuple[str, ...]:

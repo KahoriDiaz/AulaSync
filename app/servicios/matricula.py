@@ -1,27 +1,52 @@
-"""Aprobación y matrícula de una solicitud (§6.3.3 y §13.2).
+"""Realizar matrícula: guardado de datos y registro de la matrícula (§6.3.3).
 
-Todas las escrituras se hacen con ``CALL sp_...`` dentro de **una sola**
-transacción. Python no contiene sentencias de escritura: solo llama a los
-procedimientos en el orden exigido por las claves foráneas. La carpeta JSON se
-bloquea con un renombrado atómico y solo se mueve a ``aprobadas/`` tras el
-``COMMIT``.
+Todas las escrituras se hacen con ``CALL sp_...``; Python solo ejecuta
+``SELECT`` para decidir si llama al procedimiento de insertar o de actualizar.
+``guardar_datos`` ejecuta, en **una sola** transacción y en el orden que exigen
+las claves foráneas:
+
+    padre / madre -> instituciones educativas -> estudiante (crea su contacto)
+    -> tiene_padres -> constancia de logros -> logros
+
+``registrar_matricula`` llama a ``sp_registrar_matricula``, que valida el cupo
+(30 por sección), la matrícula duplicada y el responsable.
 """
 from __future__ import annotations
 
 from datetime import date
-from typing import Any, Iterable, Sequence
+from typing import Any, Sequence
 
 from app import db
 from app.errores import ErrorValidacion
-from app.servicios import solicitudes as sol
 
-SECCIONES = {
+NIVELES: dict[str, tuple[str, ...]] = {
+    "Inicial": ("3 a.", "4 a.", "5 a."),
+    "Primaria": ("1.°", "2.°", "3.°", "4.°", "5.°", "6.°"),
+    "Secundaria": ("1.°", "2.°", "3.°", "4.°", "5.°"),
+}
+SECCIONES: dict[str, tuple[str, ...]] = {
     "Inicial": ("A", "B"),
     "Primaria": ("A", "B", "C"),
     "Secundaria": ("A", "B", "C", "D"),
 }
+SITUACIONES_FINALES = ("APROBADO", "REQUIERE RECUPERACIÓN")
+CAPACIDAD = 30
 LUGAR_SUSCRIPCION = "Virtual"
-SIN_CONSTANCIA = "Sin constancia (ingresante)"
+
+CAMPOS_PADRE = (
+    "DNI", "Sexo", "Nombres", "ApellidoPaterno", "ApellidoMaterno",
+    "FechaNacimiento", "OcupacionActual", "GradoInstruccion", "DomicilioActual",
+    "DistritoDomicilio", "TelefonoFijo", "Celular", "CorreoElectronico",
+)
+CAMPOS_ESTUDIANTE = (
+    "DNI", "Sexo", "Nombres", "ApellidoPaterno", "ApellidoMaterno",
+    "FechaNacimiento", "DistritoNacimiento", "ProvinciaNacimiento",
+    "DepartamentoNacimiento", "PaisNacimiento", "DomicilioActual",
+    "DistritoDomicilio", "Celular", "CorreoElectronico", "Religion",
+    "LugarQueOcupa", "TipoAtencion", "EnfermedadCronica", "ViveConPadre",
+    "ViveConMadre", "ElPadreVive", "LaMadreVive",
+)
+BOOLEANOS = ("ViveConPadre", "ViveConMadre", "ElPadreVive", "LaMadreVive")
 
 
 # ------------------------------------------------------------ lecturas / BD
@@ -43,52 +68,24 @@ def _llamar(cursor, nombre: str, parametros: Sequence[Any] = ()) -> None:
             break
 
 
+def _vacio_a_none(valor: Any) -> Any:
+    """Los campos opcionales vacíos se envían como NULL a los procedimientos."""
+    if isinstance(valor, str):
+        valor = valor.strip()
+        return valor or None
+    return valor
+
+
+def _booleano(valor: Any) -> int:
+    return 1 if valor in (True, 1, "1", "Sí", "Si", "sí", "si") else 0
+
+
 def grado_siguiente(nivel: str, grado: str, situacion: str) -> str:
     """Calcula el grado que corresponde usando ``fn_grado_siguiente``."""
     fila = db.query_uno(
         "SELECT fn_grado_siguiente(%s, %s, %s) AS grado", (nivel, grado, situacion)
     )
     return str(fila["grado"]) if fila else ""
-
-
-def cupos_seccion(anio: int, nivel: str, grado: str, seccion: str) -> dict[str, Any]:
-    """Devuelve matriculados y vacantes de una sección (30 por sección)."""
-    conjuntos = db.call_proc("sp_cupos_seccion", (anio, nivel, grado, seccion))
-    fila = conjuntos[0][0] if conjuntos and conjuntos[0] else {}
-    matriculados = int(fila.get("Matriculados") or 0)
-    vacantes = fila.get("Vacantes")
-    return {
-        "Matriculados": matriculados,
-        # Una sección llena tiene 0 vacantes: no usar "or", que lo cambiaría a 30.
-        "Vacantes": int(vacantes) if vacantes is not None else max(0, 30 - matriculados),
-    }
-
-
-def verificar_cupos(anio: int, nivel: str, grado: str) -> list[dict[str, Any]]:
-    """Cupos de todas las secciones posibles para el nivel indicado."""
-    return [
-        {"seccion": seccion, **cupos_seccion(anio, nivel, grado, seccion)}
-        for seccion in SECCIONES.get(nivel, ())
-    ]
-
-
-# --------------------------------------------------------- decisiones / grado
-def _decisiones_por_dni(decisiones: Any) -> dict[str, dict[str, Any]]:
-    if not decisiones:
-        return {}
-    if isinstance(decisiones, dict) and "alumnos" in decisiones:
-        alumnos = decisiones["alumnos"]
-    else:
-        alumnos = decisiones
-    if isinstance(alumnos, dict):
-        return {str(dni): dict(valores or {}) for dni, valores in alumnos.items()}
-    if isinstance(alumnos, (list, tuple)):
-        resultado: dict[str, dict[str, Any]] = {}
-        for valores in alumnos:
-            if isinstance(valores, dict) and valores.get("dni"):
-                resultado[str(valores["dni"])] = dict(valores)
-        return resultado
-    return {}
 
 
 def nivel_de_grado_siguiente(nivel: str, grado: str, siguiente: str) -> str:
@@ -102,380 +99,227 @@ def nivel_de_grado_siguiente(nivel: str, grado: str, siguiente: str) -> str:
     return nivel
 
 
-def aplicar_verificaciones(
-    solicitud: dict[str, Any], decisiones: Any, usuario_dni: str
-) -> list[str]:
-    """Registra lo visto por la secretaria y advierte si el grado no coincide."""
-    por_dni = _decisiones_por_dni(decisiones)
-    advertencias: list[str] = []
-    ahora = date.today().isoformat()
-    for alumno in solicitud.get("alumnos", []):
-        ficha = alumno["ficha"]
-        dni = str(ficha.get("DNI", ""))
-        decision = por_dni.get(dni, {})
-        constancia = alumno.setdefault("constancia", {})
-        sin_constancia = bool(decision.get("sin_constancia", constancia.get("sin_constancia")))
-        situacion = str(decision.get("situacion") or "APROBADO").strip().upper()
-        nivel_ultimo = str(decision.get("nivel_ultimo") or constancia.get("nivel_educativo") or "")
-        grado_ultimo = str(decision.get("grado_ultimo") or "")
-        if not grado_ultimo and constancia.get("logros"):
-            ultimo = max(constancia["logros"], key=lambda fila: int(fila.get("anio", 0)))
-            grado_ultimo = str(ultimo.get("grado", ""))
-        ultimo_anio = decision.get("ultimo_anio")
-        if ultimo_anio is None and constancia.get("logros"):
-            ultimo_anio = max(int(fila.get("anio", 0)) for fila in constancia["logros"])
-
-        calculado = ""
-        if sin_constancia:
-            constancia["sin_constancia"] = True
-            estado = SIN_CONSTANCIA
-        else:
-            calculado = grado_siguiente(nivel_ultimo, grado_ultimo, situacion)
-            estado = "Verificado"
-        destino = alumno.get("destino", {})
-        nivel_calculado = (
-            nivel_de_grado_siguiente(nivel_ultimo, grado_ultimo, calculado)
-            if calculado else ""
-        )
-        coincide = None
-        if calculado:
-            coincide = (
-                calculado == destino.get("grado") and nivel_calculado == destino.get("nivel")
-            )
-            if not coincide:
-                advertencias.append(
-                    f"{dni}: corresponde {nivel_calculado} {calculado} pero se solicitó "
-                    f"{destino.get('nivel', '')} {destino.get('grado', '')}."
-                )
-        seccion = str(decision.get("seccion") or "A").strip().upper()
-        if seccion not in SECCIONES.get(str(destino.get("nivel", "")), ()):
-            raise ErrorValidacion(f"{dni}: sección {seccion} no válida para el nivel.")
-        alumno["verificacion"] = {
-            "estado": estado,
-            "verificado_por": usuario_dni,
-            "fecha": ahora,
-            "ultimo_anio": ultimo_anio,
-            "situacion": situacion,
-            "nivel_ultimo": nivel_ultimo,
-            "grado_ultimo": grado_ultimo,
-            "grado_calculado": calculado,
-            "nivel_calculado": nivel_calculado,
-            "grado_solicitado": destino.get("grado", ""),
-            "coincide": coincide,
-            "seccion": seccion,
-        }
-    return advertencias
+def grado_que_corresponde(
+    nivel_ultimo: str, grado_ultimo: str, situacion: str
+) -> tuple[str, str]:
+    """Devuelve ``(nivel, grado)`` que corresponde según el último logro."""
+    siguiente = grado_siguiente(nivel_ultimo, grado_ultimo, situacion)
+    return nivel_de_grado_siguiente(nivel_ultimo, grado_ultimo, siguiente), siguiente
 
 
-def verificar_antes_de_aprobar(solicitud: dict[str, Any]) -> list[str]:
-    """Revalida los datos y comprueba matrículas previas (solo SELECT)."""
-    errores: list[str] = []
-    for paso in (1, 2, 3, 4, 5):
-        errores.extend(sol.validar_paso(paso, solicitud))
-    if solicitud.get("estado") != "Enviada":
-        errores.append("Solo se puede matricular una solicitud Enviada.")
-    if sol.etapa_de(solicitud) != "matricula":
-        errores.append(
-            "La solicitud está en la etapa Vacante: primero acepte la vacante y "
-            "complete los datos de matrícula."
-        )
-    anio = solicitud.get("anio")
-    for alumno in solicitud.get("alumnos", []):
-        dni = str(alumno.get("ficha", {}).get("DNI", ""))
-        fila = db.query_uno(
-            "SELECT 1 AS existe FROM MATRICULA WHERE DNI_Estudiante = %s "
-            "AND `AñoEscolar` = %s",
-            (dni, anio),
-        )
-        if fila:
-            errores.append(f"El alumno {dni} ya tiene matrícula en {anio}.")
-    return errores
-
-
-# ------------------------------------------------------------ helpers de datos
-def _sin_vacios(existente: dict[str, Any], nuevos: dict[str, Any]) -> dict[str, Any]:
-    """Conserva los existentes cuando el JSON trae el campo vacío.
-
-    Siempre devuelve todas las claves de ``nuevos`` (con valor vacío si hace
-    falta), porque los procedimientos exigen la firma completa.
-    """
-    resultado: dict[str, Any] = {}
-    for clave, valor in nuevos.items():
-        resultado[clave] = valor if valor not in (None, "") else existente.get(clave, valor)
-    return resultado
-
-
-def _padre_parametros(padre: dict[str, Any], existente: dict[str, Any] | None) -> tuple:
-    campos = {
-        "DNI": "DNI", "Sexo": "Sexo", "Nombres": "Nombres",
-        "ApellidoPaterno": "ApellidoPaterno", "ApellidoMaterno": "ApellidoMaterno",
-        "FechaNacimiento": "FechaNacimiento", "OcupacionActual": "OcupacionActual",
-        "GradoInstruccion": "GradoInstruccion", "DomicilioActual": "DomicilioActual",
-        "DistritoDomicilio": "DistritoDomicilio", "TelefonoFijo": "TelefonoFijo",
-        "Celular": "Celular", "CorreoElectronico": "CorreoElectronico",
-    }
-    valores = {campo: padre.get(origen, "") for origen, campo in campos.items()}
-    if existente:
-        valores = _sin_vacios(existente, valores)
-    return tuple(valores[campo] for campo in campos.values())
-
-
-def _ie_de_alumno(alumno: dict[str, Any]) -> dict[str, str]:
-    constancia = alumno.get("constancia", {})
-    procedencia = alumno.get("ie_procedencia", {})
+def cupos_seccion(anio: int, nivel: str, grado: str, seccion: str) -> dict[str, Any]:
+    """Devuelve matriculados y vacantes de una sección (30 por sección)."""
+    conjuntos = db.call_proc("sp_cupos_seccion", (anio, nivel, grado, seccion))
+    fila = conjuntos[0][0] if conjuntos and conjuntos[0] else {}
+    matriculados = int(fila.get("Matriculados") or 0)
+    vacantes = fila.get("Vacantes")
     return {
-        "CodigoModularIE": str(
-            procedencia.get("codigo_modular") or constancia.get("codigo_modular_ie") or ""
-        ).strip(),
-        "NombreIE": str(
-            procedencia.get("nombre") or constancia.get("nombre_ie") or ""
-        ).strip(),
-        "TipoIE": str(procedencia.get("tipo") or constancia.get("tipo_ie") or "").strip(),
+        "Matriculados": matriculados,
+        # Una sección llena tiene 0 vacantes: no usar "or", que lo cambiaría a 30.
+        "Vacantes": int(vacantes) if vacantes is not None else max(0, CAPACIDAD - matriculados),
     }
 
 
-def _estudiante_base(alumno: dict[str, Any]) -> tuple:
-    """Los 22 primeros argumentos, comunes a insertar y actualizar."""
-    ficha = alumno["ficha"]
-    return (
-        ficha.get("DNI", ""), ficha.get("Sexo", ""), ficha.get("Nombres", ""),
-        ficha.get("ApellidoPaterno", ""), ficha.get("ApellidoMaterno", ""),
-        ficha.get("FechaNacimiento", ""), ficha.get("DistritoNacimiento", ""),
-        ficha.get("ProvinciaNacimiento", ""), ficha.get("DepartamentoNacimiento", ""),
-        ficha.get("PaisNacimiento", ""), ficha.get("DomicilioActual", ""),
-        ficha.get("DistritoDomicilio", ""), ficha.get("Celular", ""),
-        ficha.get("CorreoElectronico", ""), ficha.get("Religion", ""),
-        ficha.get("LugarQueOcupa", 1), ficha.get("TipoAtencion", ""),
-        ficha.get("EnfermedadCronica", ""), bool(ficha.get("ViveConPadre", False)),
-        bool(ficha.get("ViveConMadre", False)), bool(ficha.get("ElPadreVive", False)),
-        bool(ficha.get("LaMadreVive", False)),
-    )
-
-
-def _pares_hermandad(dnis: Iterable[str]) -> list[tuple[str, str]]:
-    ordenados = sorted(set(dnis))
+def verificar_cupos(anio: int, nivel: str, grado: str) -> list[dict[str, Any]]:
+    """Cupos de todas las secciones posibles para el nivel indicado."""
     return [
-        (ordenados[i], ordenados[j])
-        for i in range(len(ordenados))
-        for j in range(i + 1, len(ordenados))
+        {"seccion": seccion, **cupos_seccion(anio, nivel, grado, seccion)}
+        for seccion in SECCIONES.get(nivel, ())
     ]
 
 
-# ------------------------------------------------------------- transacción
-def _matricular(
-    cursor, solicitud: dict[str, Any], decisiones: Any, usuario_dni: str
+# ------------------------------------------------------------ guardar datos
+def _parametros_padre(padre: dict[str, Any]) -> tuple:
+    return tuple(_vacio_a_none(padre.get(campo)) for campo in CAMPOS_PADRE)
+
+
+def _parametros_estudiante(estudiante: dict[str, Any]) -> tuple:
+    valores: list[Any] = []
+    for campo in CAMPOS_ESTUDIANTE:
+        valor = estudiante.get(campo)
+        if campo in BOOLEANOS:
+            valores.append(_booleano(valor))
+        elif campo == "LugarQueOcupa":
+            valores.append(int(valor or 1))
+        else:
+            valores.append(_vacio_a_none(valor))
+    return tuple(valores)
+
+
+def _guardar_padre(cursor, padre: dict[str, Any]) -> str:
+    dni = str(padre.get("DNI") or "").strip()
+    existe = _uno(cursor, "SELECT DNI FROM PADRE_APODERADO WHERE DNI = %s", (dni,))
+    _llamar(
+        cursor, "sp_padre_actualizar" if existe else "sp_padre_insertar",
+        _parametros_padre(padre),
+    )
+    return dni
+
+
+def _guardar_ie(cursor, codigo: Any, nombre: Any = "", tipo: Any = "") -> None:
+    """Inserta la I.E. si no existe; si existe, solo completa datos nuevos."""
+    codigo = str(codigo or "").strip()
+    if not codigo:
+        return
+    existe = _uno(
+        cursor,
+        "SELECT CodigoModularIE, NombreIE, TipoIE FROM INSTITUCION_EDUCATIVA "
+        "WHERE CodigoModularIE = %s",
+        (codigo,),
+    )
+    nombre = _vacio_a_none(nombre)
+    tipo = _vacio_a_none(tipo)
+    if existe is None:
+        _llamar(cursor, "sp_ie_insertar", (codigo, nombre, tipo))
+    elif (nombre and nombre != existe.get("NombreIE")) or (tipo and tipo != existe.get("TipoIE")):
+        _llamar(cursor, "sp_ie_actualizar", (
+            codigo, nombre or existe.get("NombreIE"), tipo or existe.get("TipoIE"),
+        ))
+
+
+def _guardar_estudiante(
+    cursor, estudiante: dict[str, Any], codigo_ie: str | None, dni_apoderado: str | None
 ) -> None:
-    contacto: dict[str, Any] = solicitud.get("contacto_emergencia", {})
-    id_contacto: int | None = None
+    dni = str(estudiante.get("DNI") or "").strip()
+    existe = _uno(
+        cursor, "SELECT IdContactoEmergencia FROM ESTUDIANTE WHERE DNI = %s", (dni,)
+    )
+    nombre_contacto = _vacio_a_none(estudiante.get("NombreContactoEmergencia"))
+    celular_contacto = _vacio_a_none(estudiante.get("CelularEmergencia"))
+    base = _parametros_estudiante(estudiante)
+    if existe is None:
+        _llamar(cursor, "sp_estudiante_insertar", base + (
+            None, nombre_contacto, celular_contacto, codigo_ie, dni_apoderado,
+        ))
+        return
+    id_contacto = existe["IdContactoEmergencia"]
+    if nombre_contacto and celular_contacto:
+        _llamar(cursor, "sp_contacto_actualizar", (id_contacto, nombre_contacto, celular_contacto))
+    _llamar(cursor, "sp_estudiante_actualizar", base + (id_contacto, codigo_ie, dni_apoderado))
 
-    # 1. Padres/apoderados (antes que ESTUDIANTE por la FK de apoderado).
-    for padre in solicitud.get("padres", []):
-        dni = str(padre.get("DNI", ""))
-        existente = _uno(cursor, "SELECT * FROM PADRE_APODERADO WHERE DNI = %s", (dni,))
-        parametros = _padre_parametros(padre, existente)
-        proc = "sp_padre_actualizar" if existente else "sp_padre_insertar"
-        _llamar(cursor, proc, parametros)
 
-    for alumno in solicitud.get("alumnos", []):
-        dni = str(alumno["ficha"].get("DNI", ""))
-        ie = _ie_de_alumno(alumno)
+def _guardar_constancia(
+    cursor, dni: str, constancia: dict[str, Any], logros: list[dict[str, Any]]
+) -> None:
+    codigo = str(constancia.get("CodigoVirtual") or "").strip().upper()
+    if not codigo:
+        return
+    parametros = (
+        codigo, dni, constancia.get("NivelEducativo"),
+        _vacio_a_none(constancia.get("FechaHoraEmision")),
+    )
+    existe = _uno(
+        cursor, "SELECT CodigoVirtual FROM CONSTANCIA_LOGROS WHERE CodigoVirtual = %s",
+        (codigo,),
+    )
+    _llamar(
+        cursor, "sp_constancia_actualizar" if existe else "sp_constancia_insertar",
+        parametros,
+    )
+    for logro in logros:
+        anio = int(logro["AñoEscolar"])
+        existe_logro = _uno(
+            cursor,
+            "SELECT 1 AS existe FROM LOGRO WHERE CodigoVirtual = %s AND `AñoEscolar` = %s",
+            (codigo, anio),
+        )
+        _llamar(
+            cursor, "sp_logro_actualizar" if existe_logro else "sp_logro_insertar",
+            (codigo, anio, logro.get("GradoCursado"),
+             str(logro.get("CodigoModularIE") or "").strip(), logro.get("SituacionFinal")),
+        )
 
-        # 2. Institución de procedencia.
-        if ie["CodigoModularIE"]:
-            existe_ie = _uno(
-                cursor,
-                "SELECT CodigoModularIE, NombreIE, TipoIE FROM INSTITUCION_EDUCATIVA "
-                "WHERE CodigoModularIE = %s",
-                (ie["CodigoModularIE"],),
-            )
-            valores_ie = (
-                _sin_vacios(existe_ie, ie) if existe_ie else ie
-            )
-            parametros_ie = (
-                ie["CodigoModularIE"], valores_ie["NombreIE"], valores_ie["TipoIE"]
-            )
-            _llamar(
-                cursor,
-                "sp_ie_actualizar" if existe_ie else "sp_ie_insertar",
-                parametros_ie,
-            )
-            codigo_ie = ie["CodigoModularIE"]
-        else:
-            codigo_ie = ""
 
-        # 3. Estudiante; el primer hermano crea el contacto compartido.
-        existente = _uno(cursor, "SELECT * FROM ESTUDIANTE WHERE DNI = %s", (dni,))
-        apoderado = str(solicitud.get("dni_apoderado") or solicitud.get("dni_responsable") or "")
-        if existente:
-            fila_contacto = _uno(
-                cursor,
-                "SELECT IdContactoEmergencia FROM ESTUDIANTE WHERE DNI = %s", (dni,),
-            )
-            contacto_actual = fila_contacto.get("IdContactoEmergencia") if fila_contacto else None
-            parametros = _estudiante_base(alumno) + (
-                contacto_actual,
-                codigo_ie or existente.get("CodigoModularIE", ""),
-                apoderado,
-            )
-            _llamar(cursor, "sp_estudiante_actualizar", parametros)
-            id_contacto = id_contacto or contacto_actual
-        else:
-            parametros = _estudiante_base(alumno) + (
-                id_contacto,
-                str(contacto.get("nombre", "")),
-                str(contacto.get("celular", "")),
-                codigo_ie,
-                apoderado,
-            )
-            _llamar(cursor, "sp_estudiante_insertar", parametros)
-            fila_contacto = _uno(
-                cursor,
-                "SELECT IdContactoEmergencia FROM ESTUDIANTE WHERE DNI = %s", (dni,),
-            )
-            id_contacto = id_contacto or (
-                fila_contacto.get("IdContactoEmergencia") if fila_contacto else None
-            )
+def validar_datos(datos: dict[str, Any]) -> list[str]:
+    """Reglas mínimas antes de llamar a los procedimientos (los triggers validan el resto)."""
+    errores: list[str] = []
+    estudiante = datos.get("estudiante") or {}
+    dni = str(estudiante.get("DNI") or "")
+    if not (dni.isdigit() and len(dni) == 8):
+        errores.append("El DNI del estudiante debe tener 8 dígitos.")
+    padres = [p for p in (datos.get("padre"), datos.get("madre")) if p]
+    if not padres:
+        errores.append("Registre al menos al padre o a la madre.")
+    dnis_padres = {str(p.get("DNI") or "") for p in padres}
+    if str(datos.get("responsable") or "") not in dnis_padres:
+        errores.append("El responsable de la matrícula debe ser el padre o la madre registrados.")
+    if dni and dni in dnis_padres:
+        errores.append("El DNI del estudiante no puede ser el de su padre o madre.")
+    constancia = datos.get("constancia") or {}
+    if constancia.get("CodigoVirtual"):
+        for logro in datos.get("logros") or []:
+            if not str(logro.get("CodigoModularIE") or "").strip():
+                errores.append(
+                    f"El logro {logro.get('AñoEscolar')} necesita el código modular de la I.E."
+                )
+            if logro.get("SituacionFinal") not in SITUACIONES_FINALES:
+                errores.append(
+                    f"El logro {logro.get('AñoEscolar')} tiene una situación final no válida."
+                )
+    return errores
 
-        # 4. Relación con padres/apoderados.
-        for padre in solicitud.get("padres", []):
-            dni_padre = str(padre.get("DNI", ""))
+
+def guardar_datos(datos: dict[str, Any]) -> None:
+    """Inserta o actualiza todos los datos del estudiante en una sola transacción.
+
+    ``datos`` contiene: ``estudiante`` (columnas de ESTUDIANTE más
+    NombreContactoEmergencia y CelularEmergencia), ``padre`` y ``madre``
+    (columnas de PADRE_APODERADO o None), ``responsable`` (DNI), ``ie``
+    (procedencia: CodigoModularIE, NombreIE, TipoIE), ``constancia``
+    (CodigoVirtual, NivelEducativo, FechaHoraEmision) y ``logros`` (lista con
+    AñoEscolar, GradoCursado, CodigoModularIE, NombreIE, SituacionFinal).
+    Ante cualquier error del procedimiento o trigger se hace ROLLBACK.
+    """
+    errores = validar_datos(datos)
+    if errores:
+        raise ErrorValidacion("Revise los datos:\n- " + "\n- ".join(errores))
+    estudiante = datos["estudiante"]
+    dni = str(estudiante["DNI"]).strip()
+    ie = datos.get("ie") or {}
+    logros = list(datos.get("logros") or [])
+    responsable = str(datos.get("responsable") or "").strip() or None
+
+    with db.transaccion() as cursor:
+        # 1. Padre y madre (antes que ESTUDIANTE por la FK del apoderado).
+        dnis_padres = [
+            _guardar_padre(cursor, padre)
+            for padre in (datos.get("padre"), datos.get("madre")) if padre
+        ]
+        # 2. Instituciones: la de procedencia y las de cada logro (FK de LOGRO).
+        _guardar_ie(cursor, ie.get("CodigoModularIE"), ie.get("NombreIE"), ie.get("TipoIE"))
+        for logro in logros:
+            _guardar_ie(cursor, logro.get("CodigoModularIE"), logro.get("NombreIE"))
+        codigo_ie = str(ie.get("CodigoModularIE") or "").strip() or None
+        # 3. Estudiante (el procedimiento crea el contacto de emergencia).
+        _guardar_estudiante(cursor, estudiante, codigo_ie, responsable)
+        # 4. Relación con sus padres.
+        for dni_padre in dnis_padres:
             relacion = _uno(
                 cursor,
-                "SELECT 1 AS existe FROM TIENE_PADRES WHERE DNI_Estudiante = %s "
-                "AND DNI_Padre = %s",
+                "SELECT 1 AS existe FROM TIENE_PADRES WHERE DNI_Estudiante = %s AND DNI_Padre = %s",
                 (dni, dni_padre),
             )
             if not relacion:
                 _llamar(cursor, "sp_tiene_padres_insertar", (dni, dni_padre))
-
-        # 5. NEE y hermanos en la I.E.
-        for necesidad in alumno.get("nee", []):
-            existe = _uno(
-                cursor,
-                "SELECT 1 AS existe FROM ESTUDIANTE_NEE WHERE DNI_Estudiante = %s "
-                "AND NecesidadEducativaEspecial = %s",
-                (dni, necesidad),
-            )
-            if not existe:
-                _llamar(cursor, "sp_nee_insertar", (dni, necesidad))
-        for nivel in alumno.get("hermanos_ie", []):
-            existe = _uno(
-                cursor,
-                "SELECT 1 AS existe FROM ESTUDIANTE_HERMANOS_IE WHERE DNI_Estudiante = %s "
-                "AND NivelHermano = %s",
-                (dni, nivel),
-            )
-            if not existe:
-                _llamar(cursor, "sp_hermanos_ie_insertar", (dni, nivel))
-
-        # 6. Constancia y logros (opcional para ingresantes).
-        constancia = alumno.get("constancia", {})
-        codigo_virtual = str(constancia.get("codigo_virtual") or "").strip().upper()
-        if codigo_virtual and not constancia.get("sin_constancia"):
-            existe = _uno(
-                cursor,
-                "SELECT CodigoVirtual, DNI_Estudiante, NivelEducativo, FechaHoraEmision "
-                "FROM CONSTANCIA_LOGROS WHERE CodigoVirtual = %s",
-                (codigo_virtual,),
-            )
-            datos_constancia = {
-                "CodigoVirtual": codigo_virtual,
-                "DNI_Estudiante": dni,
-                "NivelEducativo": str(constancia.get("nivel_educativo") or ""),
-                "FechaHoraEmision": str(constancia.get("fecha_hora_emision") or "") or None,
-            }
-            if existe:
-                datos_constancia = _sin_vacios(existe, datos_constancia)
-                _llamar(cursor, "sp_constancia_actualizar", tuple(
-                    datos_constancia[c] for c in (
-                        "CodigoVirtual", "DNI_Estudiante", "NivelEducativo", "FechaHoraEmision"
-                    )
-                ))
-            else:
-                _llamar(cursor, "sp_constancia_insertar", tuple(
-                    datos_constancia[c] for c in (
-                        "CodigoVirtual", "DNI_Estudiante", "NivelEducativo", "FechaHoraEmision"
-                    )
-                ))
-            for logro in constancia.get("logros", []):
-                anio = int(logro.get("anio", 0))
-                existe_logro = _uno(
-                    cursor,
-                    "SELECT 1 AS existe FROM LOGRO WHERE CodigoVirtual = %s "
-                    "AND `AñoEscolar` = %s",
-                    (codigo_virtual, anio),
-                )
-                parametros_logro = (
-                    codigo_virtual, anio, str(logro.get("grado", "")),
-                    str(logro.get("codigo_modular_ie") or codigo_ie or ""),
-                    str(logro.get("situacion", "")),
-                )
-                _llamar(
-                    cursor,
-                    "sp_logro_actualizar" if existe_logro else "sp_logro_insertar",
-                    parametros_logro,
-                )
-
-    # 7. Hermandad: un par por orden de DNI y solo si todavía no existe.
-    dnis = [str(a["ficha"].get("DNI", "")) for a in solicitud.get("alumnos", [])]
-    for primero, segundo in _pares_hermandad(dnis):
-        existe = _uno(
-            cursor,
-            "SELECT 1 AS existe FROM HERMANDAD WHERE DNI_HermanoA = %s "
-            "AND DNI_HermanoB = %s",
-            (primero, segundo),
-        )
-        if not existe:
-            _llamar(cursor, "sp_hermandad_insertar", (primero, segundo))
-
-    # 8. Matrícula: el procedimiento bloquea el cupo y valida duplicados.
-    for alumno in solicitud.get("alumnos", []):
-        dni = str(alumno["ficha"].get("DNI", ""))
-        verificacion = alumno.get("verificacion", {})
-        destino = alumno.get("destino", {})
-        _llamar(cursor, "sp_registrar_matricula", (
-            dni,
-            int(solicitud["anio"]),
-            str(destino.get("nivel", "")),
-            str(destino.get("grado", "")),
-            str(verificacion.get("seccion") or "A"),
-            str(solicitud.get("dni_responsable") or ""),
-            usuario_dni,
-            LUGAR_SUSCRIPCION,
-            date.today(),
-        ))
+        # 5 y 6. Constancia de logros y sus logros.
+        _guardar_constancia(cursor, dni, datos.get("constancia") or {}, logros)
 
 
-def aprobar_y_matricular(
-    id_solicitud: str, decisiones: Any = None, usuario_dni: str | None = None
-) -> dict[str, Any]:
-    """Ejecuta el flujo completo de aprobación (§6.3.3, §13.2)."""
-    sesion = sol._exigir_secretaria()
-    usuario_dni = str(usuario_dni or sesion.dni)
-    id_procesando = sol.iniciar_procesamiento(id_solicitud)
-    try:
-        datos = sol.obtener(id_procesando)
-        errores = verificar_antes_de_aprobar(datos)
-        if errores:
-            raise ErrorValidacion(
-                "No se puede matricular la solicitud:\n- " + "\n- ".join(errores)
-            )
-        advertencias = aplicar_verificaciones(datos, decisiones, usuario_dni)
-        with db.transaccion() as cursor:
-            _matricular(cursor, datos, decisiones, usuario_dni)
+# ------------------------------------------------------------ matrícula
+def registrar_matricula(
+    dni_estudiante: str, anio: int, nivel: str, grado: str, seccion: str,
+    dni_responsable: str, dni_secretaria: str, fecha: date | None = None,
+) -> None:
+    """Registra la matrícula con ``sp_registrar_matricula``.
 
-        datos["estado"] = "Aprobada"
-        datos["aprobado_por"] = usuario_dni
-        datos["fecha_aprobacion"] = date.today().isoformat()
-        datos["advertencias_grado"] = advertencias
-        datos.setdefault("historial", []).append({
-            "fecha": datos["fecha_aprobacion"],
-            "accion": "Aprobación y matrícula",
-            "usuario": usuario_dni,
-        })
-        datos["id"] = id_solicitud
-        sol.finalizar_procesamiento(id_procesando, datos)
-        return datos
-    except Exception:
-        sol.cancelar_procesamiento(id_procesando)
-        raise
+    El procedimiento rechaza (con SIGNAL) la matrícula duplicada, la sección
+    llena y un responsable que no sea padre ni apoderado del estudiante.
+    """
+    if nivel not in NIVELES or grado not in NIVELES[nivel]:
+        raise ErrorValidacion("Seleccione un nivel y un grado válidos.")
+    if seccion not in SECCIONES[nivel]:
+        raise ErrorValidacion(f"La sección {seccion} no existe para el nivel {nivel}.")
+    db.call_proc("sp_registrar_matricula", (
+        dni_estudiante, int(anio), nivel, grado, seccion,
+        dni_responsable, dni_secretaria, LUGAR_SUSCRIPCION, fecha or date.today(),
+    ))
