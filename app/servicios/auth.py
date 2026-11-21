@@ -10,20 +10,12 @@ Todo el acceso a datos usa SELECT y CALL sp_... (sin escrituras directas en Pyth
 from __future__ import annotations
 
 import re
-import time
 from dataclasses import dataclass
 from typing import Optional
 
 from app import db
-from app.config import config
-from app.errores import ErrorBaseDatos, ErrorValidacion
-from app.sesion import (
-    INTENTOS_MAXIMOS,
-    TIEMPO_BLOQUEO_SEGUNDOS,
-    Sesion,
-    autenticacion,
-)
-from app.seguridad import hash_clave, verificar_clave
+from app.sesion import Sesion, autenticacion
+from app.seguridad import verificar_clave
 
 DNI_RE = re.compile(r"^[0-9]{8}$")
 
@@ -34,9 +26,6 @@ class Intento:
     mensaje: str
     segundos_bloqueo: int = 0
 
-
-class ErrorAuth(Exception):
-    pass
 
 
 def login(dni: str, clave_texto: str) -> Intento:
@@ -66,7 +55,7 @@ def login(dni: str, clave_texto: str) -> Intento:
         (dni,),
     )
 
-    # Mensaje genérico tanto si no existe el usuario como si la clave es wrong.
+    # Mensaje genérico tanto si no existe el usuario como si la clave es incorrecta.
     if fila is None:
         autenticacion.registrar_intento_fallido()
         return Intento(
@@ -108,7 +97,7 @@ def login(dni: str, clave_texto: str) -> Intento:
         apellidos=apellidos.strip(),
     )
     autenticacion.iniciar_sesion(sesion)
-    return Intento(True, "Bienvenido, " + fila["Nombres"] + ".")
+    return Intento(True, f"Bienvenido, {sesion.nombres or sesion.nombre_usuario}.")
 
 
 def logout() -> None:
