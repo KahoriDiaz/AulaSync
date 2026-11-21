@@ -18,6 +18,7 @@ from app.ui.padre.solicitar_vacante import SolicitarVacante
 from app.ui.secretaria.bandeja import BandejaSolicitudes
 from app.ui.secretaria.distribucion import Distribucion
 from app.ui.secretaria.listas import Listas
+from app.ui.secretaria.panel import PanelRelaciones
 from app.ui.secretaria.reportes import Reportes
 
 
@@ -79,6 +80,7 @@ class VentanaPrincipal(tk.Tk):
 
             m_reportes = tk.Menu(barra, tearoff=0)
             m_reportes.add_command(label="10 consultas representativas", command=lambda: self.mostrar_pestana("reportes"))
+            m_reportes.add_command(label="Panel de relaciones", command=lambda: self.mostrar_pestana("panel"))
             m_reportes.add_command(label="Cupos por sección", command=lambda: self.mostrar_pestana("distribucion"))
             m_reportes.add_command(label="Comparación de listas", command=lambda: self.mostrar_pestana("listas"))
             barra.add_cascade(label="Reportes", menu=m_reportes)
@@ -136,6 +138,7 @@ class VentanaPrincipal(tk.Tk):
             self.pestanas["distribucion"] = self._pestana_distribucion()
             self.pestanas["listas"] = self._pestana_listas()
             self.pestanas["reportes"] = self._pestana_reportes()
+            self.pestanas["panel"] = self._pestana_panel()
         if sesion and sesion.rol == "Padre":
             self.pestanas["solicitudes"] = self._pestana_solicitudes()
 
@@ -179,6 +182,13 @@ class VentanaPrincipal(tk.Tk):
         frame = ttk.Frame(self.notebook)
         self.notebook.add(frame, text="Reportes (10 consultas)")
         frame.contenido = Reportes(frame)
+        frame.contenido.pack(fill="both", expand=True)
+        return frame
+
+    def _pestana_panel(self):
+        frame = ttk.Frame(self.notebook)
+        self.notebook.add(frame, text="Panel de relaciones")
+        frame.contenido = PanelRelaciones(frame)
         frame.contenido.pack(fill="both", expand=True)
         return frame
 
@@ -241,6 +251,8 @@ class VentanaPrincipal(tk.Tk):
                 return clave
             if clave == "reportes" and texto == "Reportes (10 consultas)":
                 return clave
+            if clave == "panel" and texto == "Panel de relaciones":
+                return clave
         return None
 
     def mostrar_pestana(self, clave):
@@ -256,7 +268,7 @@ class VentanaPrincipal(tk.Tk):
         frame = self.pestanas.get(clave)
         if not frame:
             return
-        if clave in ("solicitudes", "bandeja", "distribucion", "listas", "reportes"):
+        if clave in ("solicitudes", "bandeja", "distribucion", "listas", "reportes", "panel"):
             frame.contenido.recargar()
             return
         servicio = frame.servicio

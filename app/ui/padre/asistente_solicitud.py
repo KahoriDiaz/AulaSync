@@ -13,7 +13,15 @@ from app import errores
 from app.servicios import solicitudes
 from app.ui.componentes import entry_dni, normalizar_dni
 from app.ui.tema import aplicar_tema, cabecera
-from ocr import extraer_constancia, extraer_dni, extraer_lineas, tesseract_disponible
+from ocr import (
+    diagnostico_ocr,
+    extraer_constancia,
+    extraer_dni,
+    extraer_lineas,
+    lineas_desde_texto,
+    probar_ocr,
+    tesseract_disponible,
+)
 
 CAMPOS_ALUMNO = (
     ("DNI", "DNI", "texto"),
@@ -401,16 +409,19 @@ class AsistenteSolicitud(tk.Toplevel):
         ttk.Button(seleccion, text="Adjuntar DNI", command=self.adjuntar_dni_alumno).pack(side="left", padx=3)
         ttk.Button(seleccion, text="Adjuntar constancia", command=self.adjuntar_constancia).pack(side="left", padx=3)
         self.ocr_button = ttk.Button(
-            seleccion, text="Autocompletar con OCR", command=self.autocompletar_ocr
+            seleccion, text="Autocompletar con OCR", style="Primary.TButton",
+            command=self.autocompletar_ocr,
         )
         self.ocr_button.pack(side="left", padx=3)
-        if not tesseract_disponible():
-            self.ocr_button["state"] = "disabled"
-            ttk.Label(
-                seleccion,
-                text="OCR no disponible: llene los campos manualmente.",
-                foreground="#8a5a00",
-            ).pack(side="left", padx=6)
+        ttk.Button(seleccion, text="Pegar texto OCR",
+                   command=self.pegar_texto_ocr).pack(side="left", padx=3)
+        ttk.Button(seleccion, text="Probar OCR",
+                   command=self.mostrar_diagnostico_ocr).pack(side="left", padx=3)
+        self.ocr_estado_var = tk.StringVar()
+        ttk.Label(seleccion, textvariable=self.ocr_estado_var, wraplength=420).pack(
+            side="left", padx=6
+        )
+        self._actualizar_estado_ocr()
 
         estados = ttk.Frame(pagina)
         estados.pack(fill="x", padx=8)
@@ -658,11 +669,68 @@ class AsistenteSolicitud(tk.Toplevel):
                 logros.pop(posicion)
         self._refrescar_logros()
 
+    def _actualizar_estado_ocr(self) -> None:
+        diagnostico = diagnostico_ocr()
+        self.ocr_estado_var.set(
+            "OCR listo para usar." if diagnostico["disponible"]
+            else "OCR no disponible: " + diagnostico["mensaje"]
+        )
+
+    def mostrar_diagnostico_ocr(self) -> None:
+        """Prueba el OCR y ofrece el fallback cuando algo falta."""
+        correcto, mensaje = probar_ocr()
+        self._actualizar_estado_ocr()
+        if correcto:
+            messagebox.showinfo("AulaSync - Prueba de OCR", mensaje, parent=self)
+            return
+        if messagebox.askyesno(
+            "AulaSync - OCR no disponible",
+            mensaje + "\n\n¿Desea pegar el texto leído en otra herramienta?",
+            parent=self,
+        ):
+            self.pegar_texto_ocr()
+
+    def pegar_texto_ocr(self) -> None:
+        """Permite usar los extractores aunque no haya imagen o Tesseract."""
+        self._sincronizar_documentos()
+        if self._indice_documento_alumno() is None:
+            messagebox.showwarning("Atención", "Agregue un alumno primero.", parent=self)
+            return
+        dialogo = tk.Toplevel(self)
+        aplicar_tema(dialogo)
+        dialogo.title("AulaSync - Pegar texto del OCR")
+        dialogo.geometry("720x420")
+        dialogo.transient(self)
+        marco = ttk.Frame(dialogo, padding=10)
+        marco.pack(fill="both", expand=True)
+        ttk.Label(
+            marco,
+            text="Pegue aquí el texto reconocido (DNI o constancia). "
+                 "Los campos se mostrarán para confirmar antes de aplicarlos.",
+            wraplength=660,
+        ).pack(anchor="w", pady=(0, 8))
+        area = tk.Text(marco, wrap="word", height=14)
+        area.pack(fill="both", expand=True)
+
+        def aceptar() -> None:
+            texto = area.get("1.0", "end")
+            dialogo.destroy()
+            self._aplicar_lineas_ocr(lineas_desde_texto(texto), "texto pegado")
+
+        botonera = ttk.Frame(marco)
+        botonera.pack(fill="x", pady=(8, 0))
+        ttk.Button(botonera, text="Extraer campos", style="Primary.TButton",
+                   command=aceptar).pack(side="right", padx=4)
+        ttk.Button(botonera, text="Cancelar",
+                   command=dialogo.destroy).pack(side="right", padx=4)
+
     def autocompletar_ocr(self) -> None:
         """Extrae datos con OCR y pide confirmación antes de aplicarlos (§6.2.3)."""
+        if not tesseract_disponible():
+            self.mostrar_diagnostico_ocr()
+            return
         self._sincronizar_documentos()
-        indice = self._indice_documento_alumno()
-        if indice is None:
+        if self._indice_documento_alumno() is None:
             messagebox.showwarning("Atención", "Agregue un alumno primero.", parent=self)
             return
         origen = filedialog.askopenfilename(title="Imagen para OCR", filetypes=ARCHIVOS, parent=self)
@@ -673,11 +741,21 @@ class AsistenteSolicitud(tk.Toplevel):
         except errores.ErrorApp as exc:
             messagebox.showwarning("OCR no disponible", str(exc), parent=self)
             return
+        self._aplicar_lineas_ocr(lineas, "imagen")
+
+    def _aplicar_lineas_ocr(self, lineas: list[tuple[str, int]], origen: str) -> None:
+        """Muestra los campos detectados y los aplica solo tras confirmación."""
+        self._sincronizar_documentos()
+        indice = self._indice_documento_alumno()
+        if indice is None:
+            messagebox.showwarning("Atención", "Agregue un alumno primero.", parent=self)
+            return
         campos_dni = extraer_dni(lineas, tabla="ESTUDIANTE")
         campos_const, logros = extraer_constancia(lineas)
         if not campos_dni and not campos_const:
             messagebox.showinfo(
-                "Sin resultados", "No se reconocieron campos. Complete el formulario a mano.",
+                "Sin resultados",
+                f"No se reconocieron campos en el {origen}. Complete el formulario a mano.",
                 parent=self,
             )
             return

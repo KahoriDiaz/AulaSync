@@ -8,6 +8,7 @@ from __future__ import annotations
 import os
 import webbrowser
 from pathlib import Path
+from typing import Any
 
 import tkinter as tk
 from tkinter import messagebox, simpledialog, ttk
@@ -15,7 +16,7 @@ from tkinter import messagebox, simpledialog, ttk
 from app import errores
 from app.ui.tema import aplicar_tema, cabecera
 from app.config import config
-from app.servicios import matricula, solicitudes
+from app.servicios import automatizacion, matricula, solicitudes
 
 
 class RevisionSolicitud(tk.Toplevel):
@@ -36,6 +37,9 @@ class RevisionSolicitud(tk.Toplevel):
             return
         self.id_solicitud = id_solicitud
         self.decisiones = self._decisiones_iniciales()
+        self.estado_var = tk.StringVar(value="Semáforo: sin evaluar")
+        self.existente_var = tk.StringVar(value="")
+        self.semaforo: dict[str, Any] = {"estado": automatizacion.AMBAR}
         self._construir()
         self._cargar_alumno(0)
         self.protocol("WM_DELETE_WINDOW", self._cerrar)
@@ -50,7 +54,7 @@ class RevisionSolicitud(tk.Toplevel):
             ultimo = max(logros, key=lambda f: int(f.get("anio", 0))) if logros else {}
             resultado[dni] = {
                 "dni": dni,
-                "seccion": verificacion.get("seccion", "A"),
+                "seccion": verificacion.get("seccion", ""),
                 "sin_constancia": bool(constancia.get("sin_constancia")),
                 "situacion": verificacion.get("situacion") or ultimo.get("situacion", "APROBADO"),
                 "nivel_ultimo": verificacion.get("nivel_ultimo")
@@ -71,6 +75,9 @@ class RevisionSolicitud(tk.Toplevel):
                  f"— estado {self.datos.get('estado', '')}",
             style="Seccion.TLabel",
         ).pack(side="left")
+        ttk.Label(
+            superior, textvariable=self.estado_var, style="Seccion.TLabel"
+        ).pack(side="left", padx=12)
 
         cuerpo = ttk.Frame(self)
         cuerpo.pack(fill="both", expand=True, padx=8, pady=4)
@@ -158,7 +165,7 @@ class RevisionSolicitud(tk.Toplevel):
         self.decision_vars: dict[str, tk.StringVar] = {
             "ultimo_anio": tk.StringVar(), "nivel_ultimo": tk.StringVar(),
             "grado_ultimo": tk.StringVar(), "situacion": tk.StringVar(value="APROBADO"),
-            "seccion": tk.StringVar(value="A"),
+            "seccion": tk.StringVar(value=""),
         }
         ttk.Label(datos, text="Último año:").grid(row=0, column=0, sticky="w", padx=4, pady=3)
         ttk.Entry(datos, textvariable=self.decision_vars["ultimo_anio"], width=10).grid(row=0, column=1)
@@ -179,6 +186,7 @@ class RevisionSolicitud(tk.Toplevel):
             datos, textvariable=self.decision_vars["seccion"], width=8, state="readonly"
         )
         self.seccion_combo.grid(row=2, column=1)
+        self.seccion_combo.bind("<<ComboboxSelected>>", self._seccion_cambiada)
         self.sin_constancia_var = tk.BooleanVar(value=False)
         ttk.Checkbutton(
             datos, text="Sin constancia (ingresante)", variable=self.sin_constancia_var,
@@ -194,6 +202,29 @@ class RevisionSolicitud(tk.Toplevel):
         ttk.Label(resultado, textvariable=self.coincide_var, foreground="#8a1c1c").pack(side="left", padx=12)
         ttk.Button(resultado, text="Calcular grado", command=self.calcular_grado).pack(side="right", padx=3)
         ttk.Button(resultado, text="Ver cupos de sección", command=self.ver_cupos).pack(side="right", padx=3)
+        ttk.Button(resultado, text="Sugerir sección", style="Primary.TButton",
+                   command=self.sugerir_seccion).pack(side="right", padx=3)
+
+        aviso = ttk.LabelFrame(pagina, text="Situación del alumno en la base")
+        aviso.pack(fill="x", padx=8, pady=6)
+        ttk.Label(aviso, textvariable=self.existente_var, wraplength=780).pack(anchor="w", padx=6, pady=4)
+
+        semaforo = ttk.LabelFrame(pagina, text="Semáforo de validación")
+        semaforo.pack(fill="both", expand=True, padx=8, pady=6)
+        self.semaforo_tree = ttk.Treeview(
+            semaforo, columns=("Chequeo", "Estado", "Detalle"), show="headings", height=7
+        )
+        for columna, texto, ancho in (
+            ("Chequeo", "Chequeo", 130), ("Estado", "Estado", 90), ("Detalle", "Detalle", 560),
+        ):
+            self.semaforo_tree.heading(columna, text=texto)
+            self.semaforo_tree.column(columna, width=ancho)
+        self.semaforo_tree.tag_configure(automatizacion.VERDE, foreground="#256b3a")
+        self.semaforo_tree.tag_configure(automatizacion.AMBAR, foreground="#8a5a00")
+        self.semaforo_tree.tag_configure(automatizacion.ROJO, foreground="#8a1c1c")
+        self.semaforo_tree.pack(fill="both", expand=True, padx=6, pady=4)
+        ttk.Button(semaforo, text="Actualizar semáforo", style="Primary.TButton",
+                   command=self.actualizar_semaforo).pack(anchor="e", padx=6, pady=4)
 
     # ------------------------------------------------------------ navegación
     def _indice_alumno(self) -> int | None:
@@ -275,14 +306,17 @@ class RevisionSolicitud(tk.Toplevel):
         for clave, variable in self.decision_vars.items():
             variable.set(str(decision.get(clave, "")))
         destino = alumno.get("destino", {})
-        self.seccion_combo["values"] = matricula.SECCIONES.get(destino.get("nivel", ""), ())
-        if self.decision_vars["seccion"].get() not in self.seccion_combo["values"]:
-            self.decision_vars["seccion"].set(
-                self.seccion_combo["values"][0] if self.seccion_combo["values"] else "A"
-            )
+        secciones = matricula.SECCIONES.get(destino.get("nivel", ""), ())
+        self.seccion_combo["values"] = secciones
+        if self.decision_vars["seccion"].get() not in secciones:
+            self.sugerir_seccion(silencioso=True)
+            if self.decision_vars["seccion"].get() not in secciones:
+                self.decision_vars["seccion"].set(secciones[0] if secciones else "")
         self.grado_calculado_var.set("—")
         self.coincide_var.set("—")
         self._sin_constancia_cambiado()
+        self._actualizar_existente(dni)
+        self.actualizar_semaforo()
 
     def _sin_constancia_cambiado(self) -> None:
         self._sincronizar_decision()
@@ -291,6 +325,73 @@ class RevisionSolicitud(tk.Toplevel):
         if sin:
             self.grado_calculado_var.set(matricula.SIN_CONSTANCIA)
             self.coincide_var.set("Sin constancia: no se exige coincidencia de grado.")
+
+    # ------------------------------------------------------- automatizaciones
+    def _actualizar_existente(self, dni: str) -> None:
+        try:
+            existe = automatizacion.alumno_registrado(dni)
+        except errores.ErrorApp as exc:
+            self.existente_var.set(f"No se pudo consultar la BD: {exc}")
+            return
+        self.existente_var.set(
+            "Alumno ya registrado: se actualizarán sus datos."
+            if existe else "Alumno nuevo: se creará."
+        )
+
+    def sugerir_seccion(self, silencioso: bool = False) -> None:
+        """Preselecciona la sección con más vacantes (§13.6, punto 3)."""
+        indice = self._indice_alumno()
+        if indice is None:
+            return
+        destino = self.datos["alumnos"][indice].get("destino", {})
+        try:
+            seccion = automatizacion.sugerir_seccion(
+                int(self.datos.get("anio", 0)), destino.get("nivel", ""),
+                destino.get("grado", ""),
+            )
+        except errores.ErrorApp as exc:
+            if not silencioso:
+                messagebox.showwarning("Cupos", str(exc), parent=self)
+            return
+        if not seccion:
+            return
+        self.decision_vars["seccion"].set(seccion)
+        self._sincronizar_decision()
+        if not silencioso:
+            self.actualizar_semaforo()
+
+    def _seccion_cambiada(self, _evento=None) -> None:
+        self._sincronizar_decision()
+        self.actualizar_semaforo()
+
+    def actualizar_semaforo(self) -> None:
+        """Recalcula los chequeos automáticos y muestra verde/ámbar/rojo."""
+        self._sincronizar_decision()
+        self.semaforo = automatizacion.evaluar(
+            self.datos, self.decisiones, self.id_solicitud
+        )
+        self.estado_var.set(
+            "Semáforo: " + self.semaforo["estado"] + " — " + self.semaforo["resumen"]
+        )
+        for item in self.semaforo_tree.get_children():
+            self.semaforo_tree.delete(item)
+        for chequeo in self.semaforo_tree_detalles():
+            self.semaforo_tree.insert(
+                "", "end",
+                values=(chequeo["etiqueta"], chequeo["estado"], chequeo["detalle"]),
+                tags=(chequeo["estado"],),
+            )
+
+    def semaforo_tree_detalles(self) -> list[dict[str, str]]:
+        """Devuelve los chequeos del alumno seleccionado para mostrarlos."""
+        indice = self._indice_alumno()
+        if indice is None:
+            return []
+        alumnos = self.datos.get("alumnos", [])
+        if indice >= len(alumnos):
+            return []
+        dni = str(alumnos[indice]["ficha"].get("DNI", ""))
+        return list(self.semaforo.get("por_alumno", {}).get(dni, {}).get("chequeos", []))
 
     # -------------------------------------------------------------- acciones
     def consultar_minedu(self) -> None:
@@ -415,10 +516,19 @@ class RevisionSolicitud(tk.Toplevel):
 
     def aprobar(self) -> None:
         self._sincronizar_decision()
-        if not messagebox.askyesno(
-            "Confirmar", "¿Aprobar y matricular a todos los hermanos de esta solicitud?",
-            parent=self,
-        ):
+        self.actualizar_semaforo()
+        if self.semaforo["estado"] == automatizacion.ROJO:
+            messagebox.showerror(
+                "No se puede aprobar",
+                "El semáforo indica bloqueos. Revise los chequeos en rojo antes de continuar.\n\n"
+                + self.semaforo["resumen"],
+                parent=self,
+            )
+            return
+        mensaje = "¿Aprobar y matricular a todos los hermanos de esta solicitud?"
+        if self.semaforo["estado"] == automatizacion.AMBAR:
+            mensaje += "\n\nAdvertencias: " + self.semaforo["resumen"]
+        if not messagebox.askyesno("Confirmar", mensaje, parent=self):
             return
         try:
             resultado = matricula.aprobar_y_matricular(

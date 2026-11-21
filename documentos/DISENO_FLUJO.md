@@ -92,3 +92,56 @@ se distribuye.
   destructivas se distinguen con el estilo `Danger.TButton`.
 - No se usa ningún toolkit distinto de `tkinter`/`ttk`, ni imágenes o recursos
   de marca.
+
+## 7. Automatizaciones visible en la revisión
+
+Las mejoras de automatización (§13.6) se implementan sin escribir en MySQL y sin
+quitarle la decisión a la secretaria:
+
+1. **Semáforo de validación** (`app/servicios/automatizacion.py`): comprueba DNI,
+   duplicados en `MATRICULA` y en la bandeja, registro previo en `ESTUDIANTE`,
+   grado con `fn_grado_siguiente`, cupo con `sp_cupos_seccion`, documentos y
+   mayoría de edad del responsable. Rojo bloquea la aprobación; ámbar pide
+   confirmación; verde la permite.
+2. **Aviso de alumnos existentes**: si el DNI ya está en `ESTUDIANTE`, se muestra
+   «Alumno ya registrado: se actualizarán sus datos». Si no está, «Alumno nuevo».
+3. **Sección sugerida**: se preselecciona la sección con más vacantes de las
+   posibles para el nivel/grado, usando `sp_cupos_seccion` (30 menos matriculados
+   en estado `Matriculado`).
+
+Un fallo de MySQL se convierte en aviso ámbar, nunca en un bloqueo silencioso ni
+en una excepción que cierre la ventana. La aprobación sigue siendo una única
+transacción y sigue moviendo la carpeta solo cuando la secretaria confirma.
+
+## 8. OCR con fallback
+
+El ZIP incluye un `tesseract.exe` portable y `tessdata/spa.traineddata`, por lo
+que el autocompletado funciona sin instalación adicional. El módulo `ocr/lector.py`
+expone `diagnostico_ocr()`, `probar_ocr()` y `lineas_desde_texto()`:
+
+- **Diagnóstico**: indica si falta el ejecutable, el idioma `spa` o las librerías
+  `Pillow`/`pytesseract`, y el botón **Probar OCR** comprueba el funcionamiento
+  real con una imagen generada.
+- **Fallback**: **Pegar texto OCR** alimenta los mismos extractores con texto
+  obtenido en otra herramienta, así que el formulario nunca queda inutilizable.
+- **Preprocesamiento**: conversión a escala de grises, autocontraste y escalado,
+  con respaldo al idioma `eng` si `spa` no reconoce nada.
+
+Los campos reconocidos se muestran siempre para confirmación antes de aplicarlos.
+La consulta del código virtual solo lo copia al portapapeles y abre la URL
+configurada: **no** verifica el código contra MINEDU automáticamente.
+
+## 9. Relaciones entre tablas visibles en la interfaz
+
+El menú Reportes incluye **Panel de relaciones** (`app/ui/secretaria/panel.py`),
+una vista de solo lectura que hace visible el modelo entity-relacional:
+
+- Indicadores por tabla: `ESTUDIANTE`, `MATRICULA`, `PADRE_APODERADO`,
+  `INSTITUCION_EDUCATIVA`, `CONSTANCIA_LOGROS`, `LOGRO`, `TIENE_PADRES`,
+  `HERMANDAD`, `ESTUDIANTE_NEE` y `ESTUDIANTE_HERMANOS_IE`.
+- Ficha 360° de cada matrícula: cruza `MATRICULA` con `ESTUDIANTE`,
+  `PADRE_APODERADO` (responsable), `SECRETARIA`, `INSTITUCION_EDUCATIVA` y,
+  mediante subconsultas, `TIENE_PADRES`, `HERMANDAD` y `LOGRO`.
+
+Todas las consultas son `SELECT`; no se agregaron tablas ni se modificaron las
+10 consultas representativas de `sql/06_consultas.sql`.

@@ -10,7 +10,10 @@ from ocr.constancia import extraer_constancia
 from ocr.dni import extraer_dni
 from ocr.lector import (
     TesseractNoDisponible,
+    diagnostico_ocr,
     extraer_lineas,
+    lineas_desde_texto,
+    probar_ocr,
     tesseract_disponible,
 )
 
@@ -18,6 +21,9 @@ __all__ = [
     "extraer_dni",
     "extraer_constancia",
     "extraer_lineas",
+    "lineas_desde_texto",
+    "diagnostico_ocr",
+    "probar_ocr",
     "tesseract_disponible",
     "TesseractNoDisponible",
 ]

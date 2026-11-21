@@ -3,7 +3,7 @@
 ## 1. Requisitos
 - MySQL 8.0 instalado y en ejecución. El ejecutable **no incluye** MySQL.
 - Windows 10/11. No hace falta instalar Python para usar `AulaSync.exe`.
-- Opcional: Tesseract con idioma `spa` para el autocompletado OCR. Si falta, los datos se escriben a mano.
+- El OCR viene listo para usar: `tesseract/` incluye el ejecutable portable y el idioma `spa`.
 - Los campos de DNI solo aceptan números y como máximo 8 dígitos; no permite escribir ni pegar más.
 - La interfaz usa un tema cálido: tarjetas, botones jerárquicos y tablas con estados resaltados.
 
@@ -27,6 +27,8 @@
 - **Procesos → Distribución**: cupos por nivel/grado/sección, padrón y cambio de sección.
 - **Procesos → Listas y comparación**: padrón, comparación de dos años e importación de DNIs (solo compara; no modifica la BD).
 - **Reportes**: las 10 consultas representativas con sus parámetros y botones **Excel / PDF / CSV**.
+- **Panel de relaciones**: indicadores por tabla y una ficha 360° de cada matrícula
+  que cruza estudiante, responsable, secretaría, I.E. y hermanos. Todo con `SELECT`.
 - **Bandeja de solicitudes**: revisión de todas las etapas.
 - **Vacantes por atender**: filtra la bandeja en la etapa Vacante. Muestra el
   contador de solicitudes Enviadas y resalta con ⚠ las que llevan más de 7 días
@@ -39,6 +41,23 @@ por sección (`30 − matriculados`). El teléfono y correo se pueden copiar; el
 botón **Registrar contacto** deja constancia sin cambiar el estado. Después se
 puede **Aceptar vacante**, **Observar** o **Rechazar**. Aceptar solo actualiza el
 JSON: no reserva cupo ni escribe en la BD.
+
+### Revisión de una matrícula: semáforo
+En la ventana de revisión de la etapa Matrícula hay un **semáforo de validación**
+que se actualiza automáticamente y puede volver a calcularse con **Actualizar
+semáforo**. Comprueba:
+
+- **DNI** con 8 dígitos.
+- **Duplicados**: matrícula previa en el año o solicitudes pendientes con el mismo DNI (rojo).
+- **Registro previo**: avisa «Alumno ya registrado: se actualizarán sus datos» (ámbar).
+- **Grado** calculado con `fn_grado_siguiente` frente al grado solicitado.
+- **Cupo** de la sección elegida: sin vacantes es rojo, pocas vacantes es ámbar.
+- **Documentos** y **mayoría de edad** del responsable.
+
+**Sugerir sección** preselecciona la sección con más vacantes. Si hay algún
+bloqueo rojo, **Aprobar y matricular** se detiene y muestra los motivos; con
+avisos ámbar pide confirmación. La secretaria siempre decide: nada de esto
+escribe en la BD ni cambia la solicitud.
 
 ## 4. Menú del padre
 - **Solicitar vacante**: formulario corto con contacto, hijos (hasta 6 hermanos)
@@ -71,15 +90,27 @@ cuentas desde el login solo crea padres/apoderados y la revisión es exclusiva d
 secretaría. El máximo por sección sigue siendo 30 y una vacante aceptada no
 reserva cupo. El detalle está en `documentos/DISENO_FLUJO.md`.
 
-## 6. OCR opcional
-Si se incluye la carpeta `tesseract/` con `tesseract.exe` y `tessdata/spa.traineddata`, la aplicación la detecta sola. También se puede indicar la ruta en `config.ini`:
+## 6. OCR listo para usar
+El paquete incluye `tesseract.exe` y `tessdata/spa.traineddata`, por lo que no hay
+que instalar nada. Para usar otro Tesseract se indica la ruta en `config.ini`:
 
 ```ini
 [app]
 tesseract_cmd = C:\Ruta\a\tesseract.exe
 ```
 
-Si no está disponible, el botón de OCR se desactiva y los campos se llenan manualmente.
+En el paso 4 del asistente (Documentos) hay tres botones:
+
+- **Autocompletar con OCR**: elige una imagen, extrae DNI/constancia/logros y
+  muestra los campos reconocidos para confirmar antes de aplicarlos.
+- **Pegar texto OCR**: si no se puede leer la imagen, pega aquí el texto obtenido
+  en otra herramienta y se usan los mismos extractores.
+- **Probar OCR**: verifica ejecutable, idioma y librerías, y hace una prueba real.
+
+Si algo falta, el aviso indica exactamente qué componente hace falta y ofrece el
+fallback de texto pegado. El formulario nunca queda bloqueado. El código virtual
+solo se copia al portapapeles y abre la URL configurada; **no** se valida contra
+MINEDU de forma automática.
 
 ## 7. Regenerar el entregable
 ```bat

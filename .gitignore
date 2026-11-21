@@ -12,7 +12,13 @@ __pycache__/
 muestras/
 almacen/
 capturas/
-tesseract/
+# Tesseract portable: se versiona solo lo necesario para el OCR listo para usar.
+tesseract/*
+!tesseract/tesseract.exe
+!tesseract/LICENCIA_TESSERACT.txt
+!tesseract/tessdata/
+tesseract/tessdata/*
+!tesseract/tessdata/spa.traineddata
 data/perfiles/*.json
 docs/*.docx
 docs/*.pdf

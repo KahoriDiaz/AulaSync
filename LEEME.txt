@@ -5,8 +5,10 @@ Requisitos para el revisor
 --------------------------
 1. MySQL 8.0 instalado y en ejecución. El ejecutable NO incluye MySQL.
 2. Windows 10/11. No necesita instalar Python ni dependencias para ejecutar el .exe.
-3. Opcional: Tesseract con idioma español (spa) para el autocompletado OCR.
-   Si no está, los datos se ingresan manualmente.
+3. El OCR viene listo para usar: la carpeta tesseract/ incluye el ejecutable
+   portable y el idioma español (spa). No hay que instalar Tesseract por separado.
+   Si algo falla, la app muestra un diagnóstico y permite pegar el texto leído
+   en otra herramienta.
 
 Ejecución del entregable
 ------------------------
@@ -27,8 +29,11 @@ Ejecución del entregable
 
 6. Desde la cuenta secretaria revisar: Mantenimiento, Distribución, Listas y
    comparación, Reportes (10 consultas, 6 con JOIN, exportación Excel/PDF/CSV),
-   "Bandeja de solicitudes" y "Vacantes por atender". Desde padre_demo,
-   "Mis solicitudes" y "Solicitar vacante".
+   "Panel de relaciones" (indicadores y ficha 360° de cada matrícula),
+   "Bandeja de solicitudes" y "Vacantes por atender". Al revisar una solicitud,
+   el semáforo valida DNI, duplicados, grado, cupo, documentos y responsable;
+   sugiere la sección con más vacantes y avisa si el alumno ya está registrado.
+   Desde padre_demo, "Mis solicitudes" y "Solicitar vacante".
 
 Flujo en dos etapas (nuevo)
 ---------------------------
@@ -58,7 +63,7 @@ AulaSync/
 ├─ AulaSync.exe
 ├─ _internal/                 (dependencias; NO editar)
 ├─ sql/                       (scripts 01 a 06 usados por el asistente)
-├─ tesseract/                 (opcional: tesseract.exe + tessdata/spa.traineddata)
+├─ tesseract/                 (tesseract.exe + tessdata/spa.traineddata + licencia)
 ├─ config.ini.example         (plantilla; copiar como config.ini si hace falta)
 ├─ config.ini                 (se crea solo; NO distribuir con claves reales)
 ├─ data/solicitudes/          (pendientes/, aprobadas/, rechazadas/ con ejemplos)
@@ -68,7 +73,7 @@ AulaSync/
 Estructura del ZIP
 ------------------
 Entrega5_GrupoXX.zip
-├─ AulaSync/     (exe + dependencias + sql/ + tesseract/ opcional)
+├─ AulaSync/     (exe + dependencias + sql/ + tesseract/ listo para usar)
 ├─ codigo_fuente/    (todo el proyecto documentado, incluye datos_demo/)
 ├─ script_bd/        (los .sql 01 a 06)
 ├─ documentos/       (informe, memoria, manual, diseño del flujo y capturas)
@@ -90,15 +95,21 @@ PyInstaller puede provocar falsos positivos en Windows Defender u otros antiviru
 Si aparece una alerta, verificar la firma del archivo o agregar la carpeta a
 exclusiones antes de ejecutar. El código fuente está incluido para su revisión.
 
-OCR opcional
-------------
-Si la carpeta tesseract/ incluye tesseract.exe y tessdata/spa.traineddata, la
-aplicación la detecta automáticamente. También se puede configurar en config.ini:
+OCR listo para usar
+-------------------
+El ZIP incluye tesseract.exe y tessdata/spa.traineddata, así que el botón
+"Autocompletar con OCR" funciona sin instalar nada. Si se quiere usar otro
+Tesseract, se indica en config.ini:
 
 [app]
 tesseract_cmd = C:\Ruta\a\tesseract.exe
 
-Sin Tesseract, el botón de OCR se desactiva y los campos se llenan manualmente.
+En el paso 4 del asistente hay tres controles:
+- "Autocompletar con OCR": lee una imagen y muestra los campos para confirmar.
+- "Pegar texto OCR": usa el texto reconocido en otra herramienta (fallback).
+- "Probar OCR": diagnostica ejecutable, idioma, librerías y hace una prueba real.
+Si falta algo, el aviso dice exactamente qué componente hace falta y ofrece el
+fallback de texto pegado; el formulario nunca queda bloqueado.
 
 Regenerar el entregable (desarrollo)
 ------------------------------------
@@ -113,7 +124,7 @@ No hace falta tener pyinstaller.exe en el PATH: build.bat usa python -m PyInstal
 
 Pruebas (desarrollo, sin MySQL):
 python -m unittest tests.test_fase_a tests.test_fase_b tests.test_fase_d
-python -m unittest tests.test_fase4 tests.test_fase5 tests.test_fase6 tests.test_fase7 tests.test_fase_e tests.test_interfaz tests.test_ocr
+python -m unittest tests.test_fase4 tests.test_fase5 tests.test_fase6 tests.test_fase7 tests.test_fase_e tests.test_interfaz tests.test_ocr tests.test_automatizacion
 
 Con MySQL 8.0 cargado se pueden ejecutar además:
 python -m unittest tests.test_sql tests.test_integracion_db
