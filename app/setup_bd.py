@@ -137,12 +137,12 @@ def crear_base_y_usuario(
                 f"CREATE USER IF NOT EXISTS '{APP_USER}'@'localhost' IDENTIFIED BY %s",
                 (app_password,),
             )
-            # Si el usuario ya existÃ­a con otra clave, se alinea con config.ini.
+            # Si el usuario ya existía con otra clave, se alinea con config.ini.
             cursor.execute(
                 f"ALTER USER '{APP_USER}'@'localhost' IDENTIFIED BY %s",
                 (app_password,),
             )
-            # MÃ­nimo privilegio: la aplicaciÃ³n solo lee (SELECT) y llama a los
+            # Mínimo privilegio: la aplicación solo lee (SELECT) y llama a los
             # procedimientos (EXECUTE); las escrituras las hacen los sp_ con
             # SQL SECURITY DEFINER. Se limpian permisos de instalaciones previas.
             cursor.execute(

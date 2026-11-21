@@ -36,7 +36,7 @@ SOLICITUDES_DIR = DATOS_DIR / "solicitudes"
 
 
 def _puerto(valor: str | None, por_defecto: int) -> int:
-    """Convierte el puerto a entero; un valor vacÃ­o o invÃ¡lido usa el predeterminado."""
+    """Convierte el puerto a entero; un valor vacío o inválido usa el predeterminado."""
     try:
         puerto = int(str(valor).strip())
     except (TypeError, ValueError):
@@ -100,7 +100,7 @@ class Configuracion:
         )
         with CONFIG_FILE.open("w", encoding="utf-8") as f:
             self.parser.write(f)
-        # Mantener la instancia en memoria igual que el archivo reciÃ©n escrito,
+        # Mantener la instancia en memoria igual que el archivo recién escrito,
         # para que las conexiones siguientes usen los datos nuevos.
         self.host = bd["host"]
         self.port = int(bd["port"])

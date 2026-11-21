@@ -91,12 +91,12 @@ class AsistenteConexion(tk.Tk):
         tarjeta_datos.columnconfigure(1, weight=1)
 
     def _credenciales_root(self) -> tuple[str, int, str, str] | None:
-        """Lee los datos del formulario; devuelve None si el puerto no es vÃ¡lido."""
+        """Lee los datos del formulario; devuelve None si el puerto no es válido."""
         texto_puerto = self.ent_port.get().strip() or "3306"
         if not texto_puerto.isdigit() or not 0 < int(texto_puerto) < 65536:
-            self.lbl_estado.config(text="El puerto debe ser un nÃºmero entre 1 y 65535.",
+            self.lbl_estado.config(text="El puerto debe ser un número entre 1 y 65535.",
                                    foreground=PELIGRO)
-            messagebox.showerror("Dato invÃ¡lido", "El puerto debe ser un nÃºmero entre 1 y 65535.",
+            messagebox.showerror("Dato inválido", "El puerto debe ser un número entre 1 y 65535.",
                                  parent=self)
             return None
         return (
@@ -111,7 +111,7 @@ class AsistenteConexion(tk.Tk):
         if credenciales is None:
             return
         host, port, root_user, root_password = credenciales
-        # Conectar como administrador para obtener la versiÃ³n sin depender de que exista la BD
+        # Conectar como administrador para obtener la versión sin depender de que exista la BD
         try:
             root_cnx = mysql.connector.connect(
                 host=host,
