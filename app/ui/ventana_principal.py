@@ -246,16 +246,19 @@ class VentanaPrincipal(tk.Tk):
         frame = self.pestanas.get(clave)
         if not frame:
             return
-        if clave in ("bandeja", "distribucion", "listas", "reportes", "panel"):
-            frame.contenido.recargar()
-            return
-        servicio = frame.servicio
-        filas = servicio.listar_estudiantes() if hasattr(servicio, "listar_estudiantes") else []
-        if clave == "padres":
-            filas = padres.listar_padres()
-        elif clave == "estudiantes":
-            filas = estudiantes.listar_estudiantes()
-        frame.tabla.cargar(filas)
+        try:
+            if clave in ("bandeja", "distribucion", "listas", "reportes", "panel"):
+                frame.contenido.recargar()
+                return
+            if clave == "padres":
+                filas = padres.listar_padres()
+            elif clave == "estudiantes":
+                filas = estudiantes.listar_estudiantes()
+            else:
+                filas = []
+            frame.tabla.cargar(filas)
+        except Exception as exc:
+            messagebox.showerror("Error al cargar los datos", str(exc), parent=self)
 
     # ---------------------------------------------------------------- CRUD acciones
     # def _nuevo(self, clave, servicio, campos_alta):
