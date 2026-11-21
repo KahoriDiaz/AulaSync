@@ -21,6 +21,10 @@ ALERTA = "#C9821A"
 PELIGRO = "#B3544A"
 INFO = "#3B6EA8"
 BLANCO = "#FFFFFF"
+LATERAL = "#1F4744"
+LATERAL_HOVER = "#2A5955"
+LATERAL_TEXTO = "#D9E8E5"
+FONDO_SUAVE = "#EFEDE6"
 
 FUENTE = ("Segoe UI", 10)
 FUENTE_BOTON = ("Segoe UI", 10, "bold")
@@ -46,8 +50,51 @@ def aplicar_tema(ventana: tk.Misc) -> ttk.Style:
                      fieldbackground=SUPERFICIE, insertcolor=TEXTO)
     estilo.configure("TFrame", background=FONDO)
     estilo.configure("Card.TFrame", background=SUPERFICIE, relief="solid",
-                     borderwidth=1, padding=12)
+                     borderwidth=1, padding=12, bordercolor=BORDE,
+                     lightcolor=SUPERFICIE, darkcolor=SUPERFICIE)
     estilo.configure("SobreTarjeta.TFrame", background=SUPERFICIE)
+    estilo.configure("Lateral.TFrame", background=LATERAL)
+    estilo.configure("Lateral.TLabel", background=LATERAL, foreground=BLANCO,
+                     font=("Segoe UI", 17, "bold"))
+    estilo.configure("LateralSuave.TLabel", background=LATERAL, foreground=LATERAL_TEXTO,
+                     font=FUENTE_SUAVE)
+    estilo.configure("LateralUsuario.TLabel", background=LATERAL, foreground=BLANCO,
+                     font=FUENTE_BOTON)
+    estilo.configure("Nav.TButton", background=LATERAL, foreground=LATERAL_TEXTO,
+                     font=("Segoe UI", 10, "bold"), anchor="w", borderwidth=0,
+                     relief="flat", padding=(18, 11), focuscolor=LATERAL)
+    estilo.map("Nav.TButton", background=[("active", LATERAL_HOVER)],
+               foreground=[("active", BLANCO)])
+    estilo.configure("NavActivo.TButton", background=PRIMARIO, foreground=BLANCO,
+                     font=("Segoe UI", 10, "bold"), anchor="w", borderwidth=0,
+                     relief="flat", padding=(18, 11), focuscolor=PRIMARIO)
+    estilo.map("NavActivo.TButton", background=[("active", PRIMARIO)])
+    estilo.configure("Salir.TButton", background=LATERAL, foreground=LATERAL_TEXTO,
+                     borderwidth=1, bordercolor="#3E6B67", lightcolor=LATERAL,
+                     darkcolor=LATERAL, relief="solid", padding=(12, 7), focuscolor=LATERAL)
+    estilo.map("Salir.TButton", background=[("active", LATERAL_HOVER)],
+               foreground=[("active", BLANCO)])
+    # Notebook sin pestañas visibles: la navegación la hace la barra lateral.
+    estilo.layout("SinPestanas.TNotebook.Tab", [])
+    estilo.configure("SinPestanas.TNotebook", background=FONDO, borderwidth=0,
+                     tabmargins=0, bordercolor=FONDO, lightcolor=FONDO, darkcolor=FONDO)
+    # Lista vertical de sub-secciones (por ejemplo, las tablas del mantenimiento).
+    estilo.configure("SubNav.TButton", background=FONDO, foreground=TEXTO_SUAVE,
+                     font=FUENTE, anchor="w", borderwidth=0, relief="flat",
+                     padding=(12, 7), focuscolor=FONDO)
+    estilo.map("SubNav.TButton", background=[("active", FONDO_SUAVE)],
+               foreground=[("active", TEXTO)])
+    estilo.configure("SubNavActivo.TButton", background=SUPERFICIE, foreground=PRIMARIO_OSCURO,
+                     font=FUENTE_BOTON, anchor="w", borderwidth=1, relief="solid",
+                     bordercolor=BORDE, lightcolor=SUPERFICIE, darkcolor=SUPERFICIE,
+                     padding=(12, 7), focuscolor=SUPERFICIE)
+    estilo.map("SubNavActivo.TButton", background=[("active", SUPERFICIE)])
+    estilo.configure("Pagina.TLabel", background=FONDO, foreground=TEXTO,
+                     font=("Segoe UI", 20, "bold"))
+    estilo.configure("PaginaSuave.TLabel", background=FONDO, foreground=TEXTO_SUAVE,
+                     font=FUENTE)
+    estilo.configure("Dato.TLabel", background=SUPERFICIE, foreground=PRIMARIO_OSCURO,
+                     font=("Segoe UI", 24, "bold"))
     estilo.configure("Header.TFrame", background=PRIMARIO, padding=(18, 14))
     estilo.configure("Barra.TFrame", background=SUPERFICIE, padding=(8, 6))
 
@@ -70,9 +117,11 @@ def aplicar_tema(ventana: tk.Misc) -> ttk.Style:
     estilo.configure("OnDarkMuted.TLabel", background=PRIMARIO, foreground="#D7E7E4",
                      font=FUENTE_SUAVE)
 
-    estilo.configure("TButton", font=FUENTE_BOTON, background=SUPERFICIE,
-                     foreground=TEXTO, borderwidth=1, relief="flat", padding=(10, 6))
-    estilo.map("TButton", background=[("active", "#F0EEE7"), ("disabled", "#ECEAE2")],
+    estilo.configure("TButton", font=FUENTE_BOTON, background=FONDO_SUAVE,
+                     foreground=TEXTO, borderwidth=1, relief="solid", padding=(12, 7),
+                     bordercolor="#D6D2C7", lightcolor=FONDO_SUAVE, darkcolor=FONDO_SUAVE,
+                     focuscolor=FONDO_SUAVE)
+    estilo.map("TButton", background=[("active", "#E4E1D8"), ("disabled", "#ECEAE2")],
                foreground=[("disabled", TEXTO_SUAVE)])
     estilo.configure("Primary.TButton", background=PRIMARIO, foreground=BLANCO,
                      borderwidth=0, padding=(14, 8))
@@ -86,11 +135,16 @@ def aplicar_tema(ventana: tk.Misc) -> ttk.Style:
     estilo.configure("Danger.TButton", background=PELIGRO, foreground=BLANCO,
                      borderwidth=0, padding=(10, 6))
 
-    for nombre in ("TEntry", "TCombobox"):
+    for nombre in ("TEntry", "TCombobox", "TSpinbox"):
         estilo.configure(nombre, fieldbackground=SUPERFICIE, foreground=TEXTO,
-                         bordercolor=BORDE, lightcolor=SUPERFICIE, darkcolor=BORDE,
-                         padding=6, insertcolor=TEXTO)
-    estilo.map("TCombobox", fieldbackground=[("readonly", "#F2F1EC")])
+                         bordercolor="#CFCBC0", lightcolor=SUPERFICIE, darkcolor=SUPERFICIE,
+                         padding=7, insertcolor=TEXTO, arrowcolor=TEXTO_SUAVE)
+        # Borde del color principal mientras el campo tiene el foco.
+        estilo.map(nombre, bordercolor=[("focus", PRIMARIO)],
+                   lightcolor=[("focus", PRIMARIO)], darkcolor=[("focus", PRIMARIO)])
+    estilo.map("TCombobox", fieldbackground=[("readonly", SUPERFICIE), ("disabled", "#F2F1EC")],
+               bordercolor=[("focus", PRIMARIO)])
+    estilo.map("TEntry", fieldbackground=[("readonly", "#F2F1EC")])
 
     estilo.configure("Treeview", background=SUPERFICIE, fieldbackground=SUPERFICIE,
                      foreground=TEXTO, rowheight=30, bordercolor=BORDE)
@@ -101,15 +155,19 @@ def aplicar_tema(ventana: tk.Misc) -> ttk.Style:
                      relief="flat", padding=(6, 8))
     estilo.map("Treeview.Heading", background=[("active", "#DEDCD3")])
 
-    estilo.configure("TNotebook", background=FONDO, borderwidth=0,
-                     tabmargins=(4, 8, 4, 0))
-    estilo.configure("TNotebook.Tab", background="#ECEAE2", foreground=TEXTO_SUAVE,
-                     font=FUENTE_BOTON, padding=(14, 8), borderwidth=0)
+    estilo.configure("TNotebook", background=FONDO, borderwidth=1,
+                     tabmargins=(0, 4, 0, 0), bordercolor=BORDE,
+                     lightcolor=SUPERFICIE, darkcolor=BORDE)
+    estilo.configure("TNotebook.Tab", background=FONDO, foreground=TEXTO_SUAVE,
+                     font=FUENTE_BOTON, padding=(14, 8), borderwidth=0,
+                     bordercolor=BORDE, lightcolor=FONDO)
     estilo.map("TNotebook.Tab",
-               background=[("selected", SUPERFICIE), ("active", "#DEDCD3")],
-               foreground=[("selected", PRIMARIO_OSCURO)])
+               background=[("selected", SUPERFICIE), ("active", FONDO_SUAVE)],
+               foreground=[("selected", PRIMARIO_OSCURO)],
+               lightcolor=[("selected", PRIMARIO)])
 
     estilo.configure("TLabelframe", background=FONDO, bordercolor=BORDE,
+                     lightcolor=FONDO, darkcolor=FONDO,
                      relief="solid", borderwidth=1, padding=10)
     estilo.configure("TLabelframe.Label", background=FONDO,
                      foreground=PRIMARIO_OSCURO, font=FUENTE_SECCION)
@@ -123,6 +181,55 @@ def aplicar_tema(ventana: tk.Misc) -> ttk.Style:
     estilo.configure("Horizontal.TProgressbar", background=PRIMARIO,
                      troughcolor="#E6E3DA", borderwidth=0)
     return estilo
+
+
+def centrar(ventana: tk.Misc, ancho: int, alto: int) -> None:
+    """Ubica la ventana en el centro de la pantalla con el tamaño indicado."""
+    ventana.update_idletasks()
+    x = max(0, (ventana.winfo_screenwidth() - ancho) // 2)
+    y = max(0, (ventana.winfo_screenheight() - alto) // 3)
+    ventana.geometry(f"{ancho}x{alto}+{x}+{y}")
+
+
+class PantallaCarga(tk.Toplevel):
+    """Ventana de carga con barra de avance, para que el usuario sepa que la
+    aplicación sigue trabajando (por ejemplo, tras iniciar sesión)."""
+
+    def __init__(self, parent: tk.Misc, mensaje: str = "Cargando...", pasos: int = 0):
+        super().__init__(parent)
+        aplicar_tema(self)
+        self.title("AulaSync")
+        self.overrideredirect(True)
+        self.configure(bg=LATERAL)
+        borde = tk.Frame(self, bg=LATERAL, padx=1, pady=1)
+        borde.pack(fill="both", expand=True)
+        cuerpo = tk.Frame(borde, bg=SUPERFICIE, padx=32, pady=26)
+        cuerpo.pack(fill="both", expand=True)
+        tk.Label(cuerpo, text="AulaSync", bg=SUPERFICIE, fg=PRIMARIO_OSCURO,
+                 font=("Segoe UI", 22, "bold")).pack(anchor="w")
+        tk.Label(cuerpo, text="Sistema de matrícula escolar", bg=SUPERFICIE,
+                 fg=TEXTO_SUAVE, font=FUENTE_SUAVE).pack(anchor="w")
+        self.var_mensaje = tk.StringVar(value=mensaje)
+        tk.Label(cuerpo, textvariable=self.var_mensaje, bg=SUPERFICIE, fg=TEXTO,
+                 font=FUENTE, anchor="w").pack(fill="x", pady=(22, 8))
+        self.pasos = pasos
+        self.barra = ttk.Progressbar(
+            cuerpo, length=340, maximum=max(pasos, 1),
+            mode="determinate" if pasos else "indeterminate",
+        )
+        self.barra.pack(fill="x")
+        if not pasos:
+            self.barra.start(12)
+        centrar(self, 420, 190)
+        self.attributes("-topmost", True)
+        self.update()
+
+    def avanzar(self, mensaje: str) -> None:
+        """Muestra el paso actual y lo refleja en la barra."""
+        self.var_mensaje.set(mensaje)
+        if self.pasos:
+            self.barra.step(1)
+        self.update()
 
 
 def tarjeta(parent, **kwargs) -> ttk.Frame:

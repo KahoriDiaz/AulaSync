@@ -17,6 +17,14 @@ from app.ui.tema import SUPERFICIE
 DIGITOS = re.compile(r"^[0-9]{0,8}$")
 
 
+def encabezado(columna: str) -> str:
+    """Texto legible para una columna: 'ApellidoPaterno' -> 'Apellido Paterno',
+    'DNI_Estudiante' -> 'DNI Estudiante', 'AñoEscolar' -> 'Año Escolar'."""
+    texto = str(columna).replace("_", " ")
+    texto = re.sub(r"(?<=[a-záéíóúñ])(?=[A-ZÁÉÍÓÚÑ])", " ", texto)
+    return " ".join(texto.split())
+
+
 def normalizar_dni(texto: object) -> str:
     """Devuelve solo los dígitos del DNI, recortados a 8 caracteres."""
     return re.sub(r"[^0-9]", "", str(texto or ""))[:8]
@@ -56,7 +64,7 @@ class Tabla(ttk.Frame):
         self.tree.tag_configure("pendiente", background="#FFF3CD", foreground="#8A5A00")
         self.tree.tag_configure("rechazado", background="#FBECEA", foreground="#8E3D36")
         for col in self.columnas:
-            texto = col.replace("_", " ").title()
+            texto = encabezado(col)
             ancho = (anchos or {}).get(col, 100)
             self.tree.heading(col, text=texto, command=lambda c=col: self._ordenar(c))
             self.tree.column(col, width=ancho, anchor="w")
@@ -80,7 +88,7 @@ class Tabla(ttk.Frame):
         self._filas = []
         self.tree.configure(columns=self.columnas)
         for columna in self.columnas:
-            texto = columna.replace("_", " ").title()
+            texto = encabezado(columna)
             ancho = (anchos or {}).get(columna, 100)
             self.tree.heading(
                 columna, text=texto, command=lambda c=columna: self._ordenar(c)
@@ -91,7 +99,8 @@ class Tabla(ttk.Frame):
         for item in self.tree.get_children():
             self.tree.delete(item)
         for numero, fila in enumerate(filas):
-            valores = [fila.get(col, "") for col in self.columnas]
+            # Los NULL de la base se muestran vacíos, no como "None".
+            valores = ["" if fila.get(col) is None else fila.get(col) for col in self.columnas]
             base = "par" if numero % 2 else "impar"
             etiqueta = fila.get("_tag")
             etiquetas = (base, etiqueta) if etiqueta else (base,)
