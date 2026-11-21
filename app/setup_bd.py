@@ -136,15 +136,14 @@ def crear_base_y_usuario(
                 f"IDENTIFIED WITH mysql_native_password BY %s",
                 (app_password,),
             )
-            # cursor.execute(
-            #     f"REVOKE ALL ON `{database}`.* FROM '{APP_USER}'@'localhost'"
-            # )
-            # cursor.execute(
-            #     f"GRANT SELECT, EXECUTE ON `{database}`.* TO '{APP_USER}'@'localhost'"
-            # )
+            # MÃ­nimo privilegio: la aplicaciÃ³n solo lee (SELECT) y llama a los
+            # procedimientos (EXECUTE); las escrituras las hacen los sp_ con
+            # SQL SECURITY DEFINER. Se limpian permisos de instalaciones previas.
             cursor.execute(
-                f"GRANT ALL PRIVILEGES ON `{database}`.* "
-                f"TO '{APP_USER}'@'localhost'"
+                f"REVOKE ALL PRIVILEGES, GRANT OPTION FROM '{APP_USER}'@'localhost'"
+            )
+            cursor.execute(
+                f"GRANT SELECT, EXECUTE ON `{database}`.* TO '{APP_USER}'@'localhost'"
             )
             cursor.execute("SET GLOBAL log_bin_trust_function_creators = 1")
             cursor.execute("FLUSH PRIVILEGES")
