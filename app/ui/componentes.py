@@ -223,7 +223,9 @@ def poner_iconos(widget: tk.Misc) -> None:
     from app.ui.iconos import icono
 
     for hijo in widget.winfo_children():
-        if isinstance(hijo, ttk.Button) and not str(hijo.cget("image")):
+        # Los botones de navegación (barra lateral y sub-opciones) tienen su propio ícono o ninguno.
+        es_navegacion = str(hijo.cget("style")).startswith(("Nav", "SubNav")) if isinstance(hijo, ttk.Button) else False
+        if isinstance(hijo, ttk.Button) and not es_navegacion and not str(hijo.cget("image")):
             texto = str(hijo.cget("text")).strip()
             nombre = next((ico for prefijo, ico in ICONOS_BOTONES if texto.startswith(prefijo)), None)
             if nombre:

@@ -69,6 +69,16 @@ def aplicar_tema(ventana: tk.Misc) -> ttk.Style:
                      font=("Segoe UI", 10, "bold"), anchor="w", borderwidth=0,
                      relief="flat", padding=(18, 11), focuscolor=PRIMARIO)
     estilo.map("NavActivo.TButton", background=[("active", PRIMARIO)])
+    # Sub-opciones de la sección activa en la barra lateral.
+    estilo.configure("NavSub.TButton", background=LATERAL, foreground="#8FB3D1",
+                     font=("Segoe UI", 9), anchor="w", borderwidth=0, relief="flat",
+                     padding=(48, 6, 10, 6), focuscolor=LATERAL)
+    estilo.map("NavSub.TButton", background=[("active", LATERAL_HOVER)],
+               foreground=[("active", BLANCO)])
+    estilo.configure("NavSubActivo.TButton", background=LATERAL, foreground=BLANCO,
+                     font=("Segoe UI", 9, "bold"), anchor="w", borderwidth=0, relief="flat",
+                     padding=(48, 6, 10, 6), focuscolor=LATERAL)
+    estilo.map("NavSubActivo.TButton", background=[("active", LATERAL_HOVER)])
     estilo.configure("Salir.TButton", background=LATERAL, foreground=LATERAL_TEXTO,
                      borderwidth=1, bordercolor="#24507A", lightcolor=LATERAL,
                      darkcolor=LATERAL, relief="solid", padding=(12, 7), focuscolor=LATERAL)
