@@ -41,7 +41,6 @@ class Reportes(ttk.Frame):
                 botones_frame,
                 text=f"{consulta.numero}. {consulta.titulo}",
                 command=lambda c=consulta: self._seleccionar(c),
-                width=45,
             )
             btn.grid(row=fila, column=col, padx=4, pady=4, sticky="ew")
         botones_frame.columnconfigure(0, weight=1)
@@ -55,6 +54,8 @@ class Reportes(ttk.Frame):
 
         self.parametros_frame = ttk.LabelFrame(self, text="Parámetros (valores del script)")
         self.parametros_frame.pack(fill="x", padx=6, pady=6)
+        ttk.Label(self.parametros_frame, text="Elija una de las 10 consultas para ver sus parámetros.",
+                  style="Muted.TLabel").grid(row=0, column=0, sticky="w", padx=6, pady=3)
 
         self.botones_ejec = ttk.Frame(self)
         self.botones_ejec.pack(fill="x", padx=6)

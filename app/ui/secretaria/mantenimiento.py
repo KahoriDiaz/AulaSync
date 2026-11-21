@@ -95,12 +95,18 @@ class PestanaConFormulario(ttk.Frame):
 
 
 class Mantenimiento(ttk.Frame):
-    """Contenedor con una sub-pestaña por tabla."""
+    """Contenedor con una sub-pestaña por tabla, elegida desde una lista vertical."""
 
     def __init__(self, parent):
         super().__init__(parent)
-        self.notebook = ttk.Notebook(self)
-        self.notebook.pack(fill="both", expand=True)
+        lista = ttk.Frame(self, width=230)
+        lista.pack(side="left", fill="y", padx=(0, 14))
+        lista.pack_propagate(False)
+        ttk.Label(lista, text="TABLAS", style="Muted.TLabel").pack(anchor="w", padx=12, pady=(2, 6))
+        self.lista = lista
+        self.botones: dict[str, ttk.Button] = {}
+        self.notebook = ttk.Notebook(self, style="SinPestanas.TNotebook")
+        self.notebook.pack(side="left", fill="both", expand=True)
         self.pestanas: dict[str, tk.Widget] = {}
 
         self._agregar("Estudiante", PestanaConFormulario(
@@ -137,11 +143,16 @@ class Mantenimiento(ttk.Frame):
     def _agregar(self, titulo: str, pestana: tk.Widget) -> None:
         self.notebook.add(pestana, text=titulo)
         self.pestanas[titulo] = pestana
+        boton = ttk.Button(self.lista, text=titulo, style="SubNav.TButton",
+                           command=lambda: self.notebook.select(pestana))
+        boton.pack(fill="x", pady=1)
+        self.botones[titulo] = boton
 
     def recargar(self):
-        """Recarga solo la sub-pestaña visible."""
+        """Recarga solo la sub-pestaña visible y la resalta en la lista."""
         seleccionada = self.notebook.select()
-        for pestana in self.pestanas.values():
-            if str(pestana) == seleccionada:
+        for titulo, pestana in self.pestanas.items():
+            activa = str(pestana) == seleccionada
+            self.botones[titulo].configure(style="SubNavActivo.TButton" if activa else "SubNav.TButton")
+            if activa:
                 pestana.recargar()
-                return
