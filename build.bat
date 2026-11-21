@@ -26,7 +26,20 @@ if errorlevel 1 (
     exit /b 1
 )
 
-:: Archivos configurables: FUERA del ejecutable (config.ini se crea con el asistente).
+:: MySQL portatil: AulaSync lo enciende solo y abre directo el login.
+powershell -NoProfile -ExecutionPolicy Bypass -File "copiar_mysql.ps1" -Destino "dist\AulaSync\mysql"
+if errorlevel 1 (
+    echo No se pudo copiar el MySQL portatil. Revise que MySQL Server 8.0 este instalado.
+    exit /b 1
+)
+:: Base ya cargada con los datos de prueba: la primera apertura solo la copia.
+python -m app.servidor_bd --mysql "dist\AulaSync\mysql" --plantilla "dist\AulaSync\mysql_plantilla"
+if errorlevel 1 (
+    echo No se pudo generar la plantilla de la base de datos.
+    exit /b 1
+)
+
+:: Archivos configurables: FUERA del ejecutable.
 copy /y "config.ini.example" "dist\AulaSync\config.ini.example" >nul
 copy /y "LEEME.txt" "dist\AulaSync\LEEME.txt" >nul
 

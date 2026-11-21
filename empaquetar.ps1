@@ -14,12 +14,13 @@ New-Item -ItemType Directory -Path $tmp -Force | Out-Null
 
 # Nunca se distribuyen: entornos, cache, credenciales ni especificaciones .md
 $excluirCarpetas = @('.git', '.venv', 'venv', 'entorno', 'build', 'dist', '__pycache__',
-    '.pytest_cache', '.claude', 'tesseract', 'data', 'script_bd')
+    '.pytest_cache', '.claude', 'tesseract', 'data', 'script_bd', 'mysql', 'mysql_data',
+    'mysql_plantilla')
 $excluirArchivos = @('*.pyc', 'config.ini', '*.md', '*.zip', '*.spec', '*.lnk')
 
 function Limpiar-Carpeta([string] $ruta) {
     Get-ChildItem -Path $ruta -Recurse -Force -Directory -ErrorAction SilentlyContinue |
-        Where-Object { @('__pycache__', '.pytest_cache', '.git', '.venv') -contains $_.Name } |
+        Where-Object { @('__pycache__', '.pytest_cache', '.git', '.venv', 'mysql_data') -contains $_.Name } |
         Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
     Get-ChildItem -Path $ruta -Recurse -Force -File -Include $excluirArchivos -ErrorAction SilentlyContinue |
         Remove-Item -Force -ErrorAction SilentlyContinue
@@ -31,6 +32,12 @@ try {
     New-Item -ItemType Directory -Path $app -Force | Out-Null
     Copy-Item -Path (Join-Path $raiz 'dist\AulaSync\*') -Destination $app -Recurse -Force
     Limpiar-Carpeta $app
+    if (-not (Test-Path (Join-Path $app 'mysql\bin\mysqld.exe'))) {
+        throw 'Falta el MySQL portatil en dist\AulaSync\mysql. Ejecute build.bat.'
+    }
+    if (-not (Test-Path (Join-Path $app 'mysql_plantilla\aulasync_bd_lista.txt'))) {
+        throw 'Falta la plantilla de la base en dist\AulaSync\mysql_plantilla. Ejecute build.bat.'
+    }
 
     # 2) Codigo fuente, sin entornos ni artefactos de compilacion.
     $fuente = Join-Path $tmp 'codigo_fuente'
