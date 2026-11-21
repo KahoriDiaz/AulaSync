@@ -43,14 +43,10 @@ def traducir_error(exc: BaseException) -> str:
         mensaje = exc.args[-1] if isinstance(exc.args[-1], str) else None
     if errno == 1644:
         return str(mensaje or "La operacion no cumple una regla del negocio.")
-    # if errno in _MENSAJES_MYSQL:
-    #     return _MENSAJES_MYSQL[errno]
     if errno in _MENSAJES_MYSQL:
         mensaje_base = _MENSAJES_MYSQL[errno]
-
         if errno in (3819, 4025) and mensaje:
             return f"{mensaje_base}\nDetalle de MySQL: {mensaje}"
-
         return mensaje_base
     if isinstance(mensaje, str) and mensaje:
         return mensaje
