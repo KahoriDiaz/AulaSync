@@ -16,9 +16,11 @@ New-Item -ItemType Directory -Path $tmp -Force | Out-Null
 $excluirCarpetas = @('.git', '.venv', 'venv', 'entorno', 'build', 'dist', '__pycache__',
     '.pytest_cache', '.claude', 'tesseract', 'data', 'script_bd', 'mysql', 'mysql_data',
     'mysql_plantilla')
-$excluirArchivos = @('*.pyc', 'config.ini', '*.md', '*.zip', '*.spec', '*.lnk')
+# En la app compilada NO se borran *.zip ni *.pyc: PyInstaller necesita base_library.zip.
+$excluirApp = @('config.ini', '*.md')
+$excluirFuente = @('*.pyc', 'config.ini', '*.md', '*.zip', '*.spec', '*.lnk')
 
-function Limpiar-Carpeta([string] $ruta) {
+function Limpiar-Carpeta([string] $ruta, [string[]] $excluirArchivos) {
     Get-ChildItem -Path $ruta -Recurse -Force -Directory -ErrorAction SilentlyContinue |
         Where-Object { @('__pycache__', '.pytest_cache', '.git', '.venv', 'mysql_data') -contains $_.Name } |
         Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
@@ -31,7 +33,10 @@ try {
     $app = Join-Path $tmp 'AulaSync'
     New-Item -ItemType Directory -Path $app -Force | Out-Null
     Copy-Item -Path (Join-Path $raiz 'dist\AulaSync\*') -Destination $app -Recurse -Force
-    Limpiar-Carpeta $app
+    Limpiar-Carpeta $app $excluirApp
+    if (-not (Test-Path (Join-Path $app '_internal\base_library.zip'))) {
+        throw 'Falta _internal\base_library.zip: el ejecutable no arrancaria.'
+    }
     if (-not (Test-Path (Join-Path $app 'mysql\bin\mysqld.exe'))) {
         throw 'Falta el MySQL portatil en dist\AulaSync\mysql. Ejecute build.bat.'
     }
@@ -45,7 +50,7 @@ try {
     Get-ChildItem -Path $raiz -Force | Where-Object {
         $excluirCarpetas -notcontains $_.Name -and -not ($_.Name -like '*.zip')
     } | Copy-Item -Destination $fuente -Recurse -Force
-    Limpiar-Carpeta $fuente
+    Limpiar-Carpeta $fuente $excluirFuente
 
     # 3) Scripts SQL 01 a 06 y LEEME.
     Copy-Item -Path (Join-Path $raiz 'script_bd') -Destination (Join-Path $tmp 'script_bd') -Recurse -Force

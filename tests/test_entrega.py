@@ -142,6 +142,14 @@ class TestEntrega(unittest.TestCase):
             with self.subTest(fragmento=fragmento):
                 self.assertIn(fragmento, texto)
 
+    def test_zip_conserva_base_library_del_ejecutable(self) -> None:
+        """Borrar *.zip de la app elimina base_library.zip y el .exe no arranca."""
+        texto = _leer("empaquetar.ps1")
+        linea = next(l for l in texto.splitlines() if l.startswith("$excluirApp"))
+        self.assertNotIn("*.zip", linea)
+        self.assertNotIn("*.pyc", linea)
+        self.assertIn("base_library.zip", texto)
+
     def test_leeme_con_usuarios_demo_por_dni(self) -> None:
         texto = _leer("LEEME.txt")
         for fragmento in ("MySQL 8.0", "secretaria123", "87733221", "87733222", "DNI",
