@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import tkinter as tk
-from tkinter import messagebox
 
 from app.config import config
 from app.db import conectar
@@ -32,22 +31,6 @@ def base_datos_valida() -> bool:
         return False
 
 
-# def lanzar_login() -> None:
-#     root = tk.Tk()
-#     aplicar_tema(root)
-#     root.withdraw()
-
-#     def al_exito():
-#         root.destroy()
-#         from app.ui.ventana_principal import abrir_ventana_principal
-#         abrir_ventana_principal()
-
-#     from app.ui.login import VentanaLogin
-
-#     dlg = VentanaLogin(root, al_exito)
-#     dlg.protocol("WM_DELETE_WINDOW", root.destroy)
-#     root.mainloop()
-
 def lanzar_login() -> None:
     root = tk.Tk()
     aplicar_tema(root)
@@ -74,7 +57,6 @@ def lanzar_login() -> None:
     if acceso["exito"]:
         from app.ui.ventana_principal import abrir_ventana_principal
         abrir_ventana_principal()
-
 
 
 def main() -> None:
