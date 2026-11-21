@@ -57,12 +57,12 @@ class Tabla(ttk.Frame):
         marco.pack(fill="both", expand=True)
 
         self.tree = ttk.Treeview(marco, columns=self.columnas, show="headings")
-        self.tree.tag_configure("par", background="#F4F3EE")
+        self.tree.tag_configure("par", background="#F5F9FC")
         self.tree.tag_configure("impar", background=SUPERFICIE)
         self.tree.tag_configure("atencion", background="#FFF3CD", foreground="#8A5A00")
-        self.tree.tag_configure("aprobado", background="#E8F4EB", foreground="#245E38")
+        self.tree.tag_configure("aprobado", background="#E7F6EF", foreground="#05603F")
         self.tree.tag_configure("pendiente", background="#FFF3CD", foreground="#8A5A00")
-        self.tree.tag_configure("rechazado", background="#FBECEA", foreground="#8E3D36")
+        self.tree.tag_configure("rechazado", background="#FDECEC", foreground="#991B1B")
         for col in self.columnas:
             texto = encabezado(col)
             ancho = (anchos or {}).get(col, 100)
@@ -186,3 +186,48 @@ class BarraExportacion(ttk.Frame):
             messagebox.showerror("No se pudo exportar", str(exc), parent=self)
             return
         messagebox.showinfo("Listo", f"Archivo guardado:\n{ruta}", parent=self)
+
+
+# ------------------------------------------------------------------ íconos
+# Ícono de cada botón según el comienzo de su texto (orden: el primero que coincide).
+ICONOS_BOTONES: tuple[tuple[str, str], ...] = (
+    ("Nuevo", "plus"), ("Nueva matrícula", "plus"), ("Agregar", "plus"),
+    ("Editar", "pencil"), ("Reemplazar", "pencil"),
+    ("Eliminar", "trash"), ("Quitar", "trash"),
+    ("Actualizar", "refresh"), ("Guardar", "save"), ("Cancelar", "x"),
+    ("Buscar", "search"), ("Cargar datos registrados", "search"),
+    ("Subir", "upload"), ("Continuar", "arrow-right"), ("Mover alumno", "arrow-right"),
+    ("Abrir página", "external-link"), ("Copiar", "copy"),
+    ("Registrar matrícula", "check-circle"), ("Ejecutar consulta", "play"),
+    ("Excel", "download"), ("PDF", "download"), ("CSV", "download"),
+    ("Comparar", "chart-column"), ("Realizar matrícula", "user-plus"),
+    ("Mantenimiento", "database"), ("Probar conexión", "refresh"),
+    ("Crear base de datos", "database"), ("Ingresar", "log-in"), ("Cerrar sesión", "log-out"),
+)
+
+
+def _color_de_icono(estilo: str) -> str:
+    from app.ui import tema
+
+    if estilo in ("Primary.TButton", "Danger.TButton", "NavActivo.TButton"):
+        return tema.BLANCO
+    if estilo in ("Nav.TButton", "Salir.TButton"):
+        return tema.LATERAL_TEXTO
+    if estilo == "Accent.TButton":
+        return tema.LATERAL
+    return tema.TEXTO
+
+
+def poner_iconos(widget: tk.Misc) -> None:
+    """Agrega el ícono que corresponde a cada botón ttk de la ventana (recursivo)."""
+    from app.ui.iconos import icono
+
+    for hijo in widget.winfo_children():
+        if isinstance(hijo, ttk.Button) and not str(hijo.cget("image")):
+            texto = str(hijo.cget("text")).strip()
+            nombre = next((ico for prefijo, ico in ICONOS_BOTONES if texto.startswith(prefijo)), None)
+            if nombre:
+                color = _color_de_icono(str(hijo.cget("style")) or "TButton")
+                hijo.configure(image=icono(hijo, nombre, 16, color), compound="left",
+                               text=f"  {texto}")
+        poner_iconos(hijo)

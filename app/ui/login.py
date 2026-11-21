@@ -11,9 +11,10 @@ from tkinter import ttk
 
 from app.errores import ErrorApp
 from app.servicios import auth
-from app.ui.componentes import entry_dni
+from app.ui.componentes import entry_dni, poner_iconos
+from app.ui.iconos import icono
 from app.ui.tema import (
-    ACENTO, BLANCO, EXITO, FUENTE, FUENTE_SUAVE, LATERAL, LATERAL_TEXTO, PELIGRO,
+    ACENTO, BLANCO, EXITO, PRIMARIO, FUENTE, FUENTE_SUAVE, LATERAL, LATERAL_TEXTO, PELIGRO,
     SUPERFICIE, TEXTO_SUAVE, aplicar_tema, centrar,
 )
 
@@ -55,7 +56,7 @@ class VentanaLogin(tk.Toplevel):
             tk.Label(lateral, text=linea, bg=LATERAL, fg=LATERAL_TEXTO,
                      font=FUENTE, anchor="w").pack(anchor="w", pady=3)
         tk.Label(lateral, text="Acceso exclusivo para secretarías", bg=LATERAL,
-                 fg="#9FBDB8", font=FUENTE_SUAVE).pack(side="bottom", anchor="w")
+                 fg="#7FA9CB", font=FUENTE_SUAVE).pack(side="bottom", anchor="w")
 
         # Formulario.
         formulario = ttk.Frame(contenedor, style="SobreTarjeta.TFrame", padding=(44, 44, 44, 30))
@@ -67,13 +68,15 @@ class VentanaLogin(tk.Toplevel):
         ttk.Label(formulario, text="Ingrese su DNI y su clave para continuar.",
                   style="Card.Muted.TLabel").grid(row=1, column=0, sticky="w", pady=(2, 22))
 
-        ttk.Label(formulario, text="DNI", style="Card.Seccion.TLabel").grid(
+        ttk.Label(formulario, text="  DNI", style="Card.Seccion.TLabel",
+                  image=icono(formulario, "id-card", 18, PRIMARIO), compound="left").grid(
             row=2, column=0, sticky="w")
         self.ent_dni = entry_dni(formulario, width=32, font=("Segoe UI", 11))
         self.ent_dni.grid(row=3, column=0, sticky="ew", pady=(4, 14))
         self.ent_dni.bind("<Return>", lambda _e: self.ent_clave.focus())
 
-        ttk.Label(formulario, text="Clave", style="Card.Seccion.TLabel").grid(
+        ttk.Label(formulario, text="  Clave", style="Card.Seccion.TLabel",
+                  image=icono(formulario, "lock", 18, PRIMARIO), compound="left").grid(
             row=4, column=0, sticky="w")
         self.ent_clave = ttk.Entry(formulario, width=32, show="*", font=("Segoe UI", 11))
         self.ent_clave.grid(row=5, column=0, sticky="ew", pady=(4, 6))
@@ -95,6 +98,7 @@ class VentanaLogin(tk.Toplevel):
         )
         self.lbl_msg.grid(row=8, column=0, sticky="w", pady=(12, 0))
 
+        poner_iconos(self)
         centrar(self, 820, 480)
         self.ent_dni.focus_set()
 

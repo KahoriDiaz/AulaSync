@@ -6,6 +6,7 @@ from tkinter import ttk, messagebox
 from datetime import date
 
 from app.servicios.matricula import edad
+from app.ui.componentes import poner_iconos
 from app.ui.selector_fecha import SelectorFecha
 
 
@@ -34,6 +35,7 @@ class FormularioPadre(tk.Toplevel):
 
         self._construir_formulario()
         self._cargar_datos()
+        poner_iconos(self)
 
     def _campo(
         self,

@@ -8,13 +8,15 @@ from tkinter import ttk
 from app.errores import ErrorApp
 from app.servicios import panel
 from app.ui.componentes import Tabla
+from app.ui.iconos import icono
 from app.ui.tema import (
     ACENTO, BORDE, EXITO, INFO, PELIGRO, PRIMARIO, PRIMARIO_OSCURO, SUPERFICIE,
     TEXTO_SUAVE, tarjeta,
 )
 
 # Color de la franja de cada tarjeta, en el orden de panel.tarjetas_inicio().
-COLORES = (PRIMARIO, INFO, ACENTO, "#7A6BAE", EXITO)
+COLORES = (PRIMARIO, INFO, ACENTO, "#0891B2", EXITO)
+ICONOS = ("graduation-cap", "user", "users", "id-card", "layout-grid")
 
 
 class Inicio(ttk.Frame):
@@ -36,7 +38,7 @@ class Inicio(ttk.Frame):
         zona.pack(fill="x", pady=(0, 18))
         self.valores: list[tk.StringVar] = []
         self.titulos: list[tk.StringVar] = []
-        for columna, color in enumerate(COLORES):
+        for columna, (color, nombre_icono) in enumerate(zip(COLORES, ICONOS)):
             zona.columnconfigure(columna, weight=1, uniform="tarjetas")
             caja = tk.Frame(zona, bg=SUPERFICIE, highlightbackground=BORDE,
                             highlightthickness=1)
@@ -46,9 +48,12 @@ class Inicio(ttk.Frame):
             cuerpo.pack(side="left", fill="both", expand=True)
             titulo = tk.StringVar(value="-")
             valor = tk.StringVar(value="-")
-            tk.Label(cuerpo, textvariable=titulo, bg=SUPERFICIE, fg=TEXTO_SUAVE,
+            fila = tk.Frame(cuerpo, bg=SUPERFICIE)
+            fila.pack(fill="x")
+            tk.Label(fila, image=icono(fila, nombre_icono, 22, color), bg=SUPERFICIE).pack(side="right")
+            tk.Label(fila, textvariable=titulo, bg=SUPERFICIE, fg=TEXTO_SUAVE,
                      font=("Segoe UI", 9), anchor="w", justify="left",
-                     wraplength=170).pack(fill="x")
+                     wraplength=118).pack(side="left", fill="x")
             tk.Label(cuerpo, textvariable=valor, bg=SUPERFICIE, fg=PRIMARIO_OSCURO,
                      font=("Segoe UI", 26, "bold"), anchor="w").pack(fill="x", pady=(4, 0))
             self.titulos.append(titulo)

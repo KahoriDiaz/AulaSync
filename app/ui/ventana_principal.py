@@ -10,13 +10,15 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 
 from app.servicios import auth
-from app.ui.tema import PantallaCarga, aplicar_tema, centrar
+from app.ui.componentes import poner_iconos
+from app.ui.iconos import icono
+from app.ui.tema import BLANCO, LATERAL_TEXTO, PantallaCarga, aplicar_tema, centrar
 
 SECCIONES = (
-    ("inicio", "Inicio", "Resumen del año escolar"),
-    ("mantenimiento", "Mantenimiento", "Registros de todas las tablas"),
-    ("matricula", "Realizar matrícula", "Documentos, datos, verificación y matrícula"),
-    ("consultas", "Consultas", "Reportes, distribución y listas"),
+    ("inicio", "Inicio", "Resumen del año escolar", "house"),
+    ("mantenimiento", "Mantenimiento", "Registros de todas las tablas", "database"),
+    ("matricula", "Realizar matrícula", "Documentos, datos, verificación y matrícula", "user-plus"),
+    ("consultas", "Consultas", "Reportes, distribución y listas", "chart-column"),
 )
 
 
@@ -35,6 +37,7 @@ class VentanaPrincipal(tk.Tk):
             self._construir_contenido(carga)
             carga.avanzar("Cargando el resumen...")
             self.mostrar_pestana("inicio")
+            poner_iconos(self)
         finally:
             carga.destroy()
         centrar(self, 1280, 780)
@@ -71,8 +74,10 @@ class VentanaPrincipal(tk.Tk):
         ttk.Label(marca, text="Matrícula escolar", style="LateralSuave.TLabel").pack(anchor="w")
 
         self.botones_nav: dict[str, ttk.Button] = {}
-        for clave, titulo, _detalle in SECCIONES:
-            boton = ttk.Button(lateral, text=titulo, style="Nav.TButton",
+        for clave, titulo, _detalle, nombre_icono in SECCIONES:
+            boton = ttk.Button(lateral, text=f"   {titulo}", style="Nav.TButton",
+                               image=icono(lateral, nombre_icono, 18, LATERAL_TEXTO),
+                               compound="left",
                                command=lambda c=clave: self.mostrar_pestana(c))
             boton.pack(fill="x", padx=10, pady=1)
             self.botones_nav[clave] = boton
@@ -133,10 +138,13 @@ class VentanaPrincipal(tk.Tk):
 
     def _marcar(self, clave: str) -> None:
         """Resalta la sección activa en la barra lateral y actualiza el título."""
-        for nombre, boton in self.botones_nav.items():
-            boton.configure(style="NavActivo.TButton" if nombre == clave else "Nav.TButton")
-        for nombre, titulo, detalle in SECCIONES:
-            if nombre == clave:
+        for nombre, titulo, detalle, nombre_icono in SECCIONES:
+            activo = nombre == clave
+            self.botones_nav[nombre].configure(
+                style="NavActivo.TButton" if activo else "Nav.TButton",
+                image=icono(self, nombre_icono, 18, BLANCO if activo else LATERAL_TEXTO),
+            )
+            if activo:
                 self.var_titulo.set(titulo)
                 self.var_detalle.set(detalle)
 

@@ -11,7 +11,7 @@ from tkinter import messagebox, ttk
 
 from app.errores import ErrorApp
 from app.servicios import auth, mantenimiento
-from app.ui.componentes import CampoBusqueda, Tabla, entry_dni
+from app.ui.componentes import CampoBusqueda, Tabla, entry_dni, poner_iconos
 from app.ui.selector_fecha import SelectorFecha
 from app.ui.tema import aplicar_tema
 
@@ -50,6 +50,7 @@ class FormularioGenerico(tk.Toplevel):
         ttk.Button(botones, text="Cancelar", command=self.destroy).pack(side="right", padx=4)
         ttk.Button(botones, text="Guardar", style="Primary.TButton", command=self._guardar).pack(side="right")
         marco.columnconfigure(1, weight=1)
+        poner_iconos(self)
 
     def _control(self, parent, campo: mantenimiento.Campo, bloqueado: bool) -> tk.Widget:
         valor = (self.datos or {}).get(campo.clave)

@@ -6,6 +6,7 @@ from tkinter import messagebox, ttk
 
 import mysql.connector
 
+from app.ui.componentes import poner_iconos
 from app.ui.tema import EXITO, PELIGRO, aplicar_tema, separador, tarjeta
 from app.config import config
 from app.setup_bd import (
@@ -22,6 +23,7 @@ class AsistenteConexion(tk.Tk):
         self.title("AulaSync - Asistente de conexión")
         self.resizable(False, False)
         self._construir_ui()
+        poner_iconos(self)
 
     def _construir_ui(self) -> None:
         marco = ttk.Frame(self, padding=18)

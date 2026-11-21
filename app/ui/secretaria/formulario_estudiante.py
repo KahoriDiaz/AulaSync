@@ -4,6 +4,7 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import ttk, messagebox
 
+from app.ui.componentes import poner_iconos
 from app.ui.selector_fecha import SelectorFecha
 
 
@@ -28,6 +29,7 @@ class FormularioEstudiante(tk.Toplevel):
 
         self._construir_formulario()
         self._cargar_datos()
+        poner_iconos(self)
 
     def _campo(self, parent, clave, etiqueta, fila, columna,
                tipo="texto", ancho=32):
