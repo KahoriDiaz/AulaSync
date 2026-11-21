@@ -120,7 +120,7 @@ class TestLEEME(unittest.TestCase):
     def test_instrucciones_y_credenciales(self):
         contenido = _leer("LEEME.txt")
         for fragmento in (
-            "MySQL 8.0 instalado y en ejecución",
+            "MySQL 8.0 portátil",
             "AulaSync.exe",
             "asistente de conexión",
             "secretaria123",

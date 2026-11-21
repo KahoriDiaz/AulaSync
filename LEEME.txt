@@ -5,21 +5,30 @@ secretaria registre matrículas en MySQL. Solo para secretarias.
 
 Requisitos
 ----------
-1. MySQL 8.0 instalado y en ejecución. El ejecutable NO incluye MySQL.
-2. Windows 10/11. Para usar AulaSync.exe no hace falta instalar Python.
-3. El OCR viene listo: la carpeta tesseract/ trae el ejecutable portable y el
-   idioma español. El OCR solo prellena; todo se puede escribir a mano.
+1. Windows 10/11. No hay que instalar nada: ni Python ni MySQL.
+2. Descomprimir el ZIP en una carpeta con permiso de escritura (por ejemplo,
+   Escritorio o Descargas), no dentro de "Archivos de programa".
 
-Primera ejecución (asistente de conexión)
------------------------------------------
-1. Descomprimir Entrega5_GrupoXX.zip y abrir AulaSync.lnk (o AulaSync\AulaSync.exe).
-2. Si no existe config.ini, se abre el asistente de conexión:
-   a) Escribir servidor, puerto, usuario administrador de MySQL (root) y su clave.
-   b) "Probar conexión".
-   c) "Crear base de datos y cargar datos de prueba": crea bd_matricula, el
-      usuario matricula_app (solo SELECT y EXECUTE) y ejecuta los scripts 01 a 06.
-3. La clave del administrador NUNCA se guarda. Junto al .exe se crea config.ini
-   con el usuario matricula_app / clave matricula_app.
+Cómo abrir
+----------
+1. Descomprimir Entrega5_GrupoXX.zip.
+2. Abrir AulaSync.lnk (o AulaSync\AulaSync.exe).
+3. AulaSync enciende su propio MySQL 8.0 portátil (carpeta AulaSync\mysql, solo
+   accesible desde la misma PC, puerto 3307) y abre directo el login. La primera
+   vez copia la base con los datos de prueba (unos 15 segundos).
+4. Al cerrar AulaSync, el MySQL portátil se apaga.
+5. Para volver a los datos de prueba originales: cerrar AulaSync y borrar la
+   carpeta AulaSync\mysql_data.
+
+El OCR viene listo: la carpeta tesseract/ trae el ejecutable portable y el
+idioma español. El OCR solo prellena; todo se puede escribir a mano.
+
+Con un MySQL 8.0 propio (opcional)
+----------------------------------
+Si se borra la carpeta AulaSync\mysql, AulaSync usa un MySQL instalado y abre el
+asistente de conexión: pide el usuario administrador (root) y su clave, crea
+bd_matricula, el usuario matricula_app (solo SELECT y EXECUTE) y ejecuta los
+scripts 01 a 06. La clave del administrador NUNCA se guarda.
 
 Usuarios demo (el login es por DNI)
 -----------------------------------
@@ -52,7 +61,7 @@ alerta, agregar la carpeta a exclusiones. El código fuente está incluido.
 Estructura del ZIP
 ------------------
 Entrega5_GrupoXX.zip
-├─ AulaSync/        (AulaSync.exe + dependencias + sql/ + tesseract/)
+├─ AulaSync/        (AulaSync.exe + dependencias + sql/ + tesseract/ + mysql/ portátil)
 ├─ AulaSync.lnk     (acceso directo con ruta relativa)
 ├─ codigo_fuente/   (proyecto sin .venv, .git, cachés ni config.ini)
 ├─ script_bd/       (los .sql 01 a 06, idénticos a sql/)
@@ -60,8 +69,10 @@ Entrega5_GrupoXX.zip
 
 Regenerar el entregable (desarrollo)
 ------------------------------------
+Requiere MySQL Server 8.0 instalado en la PC de desarrollo (de ahí se copia el
+MySQL portátil; otra carpeta se indica con la variable MYSQL_HOME).
 1. pip install -r requirements.txt
-2. .\build.bat        -> dist\AulaSync\AulaSync.exe
+2. .\build.bat        -> dist\AulaSync\AulaSync.exe + mysql\ + mysql_plantilla\
 3. .\empaquetar.bat   -> Entrega5_GrupoXX.zip y AulaSync.lnk
 
 Pruebas: python -m pytest   (sin MySQL se omiten las pruebas de base de datos)
