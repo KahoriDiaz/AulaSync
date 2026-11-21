@@ -124,7 +124,7 @@ class RealizarMatricula(ttk.Frame):
 
     def _desplazable(self, parent) -> ttk.Frame:
         """Frame con barra de desplazamiento vertical para formularios largos."""
-        lienzo = tk.Canvas(parent, highlightthickness=0, background="#F7F6F2")
+        lienzo = tk.Canvas(parent, highlightthickness=0, background="#F3F7FB")
         barra = ttk.Scrollbar(parent, orient="vertical", command=lienzo.yview)
         interior = ttk.Frame(lienzo)
         interior.bind("<Configure>", lambda _e: lienzo.configure(scrollregion=lienzo.bbox("all")))

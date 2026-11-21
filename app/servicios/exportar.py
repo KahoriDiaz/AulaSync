@@ -97,7 +97,7 @@ def guardar_excel(
         hoja.append(list(encabezados))
         for celda in hoja[1]:
             celda.font = Font(bold=True, color="FFFFFF")
-            celda.fill = PatternFill("solid", fgColor="1F4E78")
+            celda.fill = PatternFill("solid", fgColor="075985")
             celda.alignment = Alignment(vertical="center")
         hoja.freeze_panes = "A2"
     for fila in cuerpo:
@@ -167,10 +167,10 @@ def guardar_pdf(
         datos = [[Paragraph("Sin datos", estilo_celda)]]
     tabla = Table(datos, colWidths=anchos, repeatRows=1 if encabezados else 0)
     tabla.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1F4E78")),
-        ("GRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#9AA5B1")),
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#075985")),
+        ("GRID", (0, 0), (-1, -1), 0.35, colors.HexColor("#CBD5E1")),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#EEF3F8")]),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F0F7FC")]),
         ("LEFTPADDING", (0, 0), (-1, -1), 3),
         ("RIGHTPADDING", (0, 0), (-1, -1), 3),
         ("TOPPADDING", (0, 0), (-1, -1), 2),

@@ -1,6 +1,6 @@
 """Tema visual compartido por todas las ventanas de AulaSync.
 
-Se usa únicamente ``tkinter``/``ttk``: paleta cálida, tarjetas suaves, botones
+Se usa únicamente ``tkinter``/``ttk``: paleta fría en celestes, tarjetas suaves, botones
 con jerarquía y tablas más legibles. No incluye imágenes ni elementos de marca.
 """
 from __future__ import annotations
@@ -8,23 +8,23 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import ttk
 
-FONDO = "#F7F6F2"
+FONDO = "#F3F7FB"
 SUPERFICIE = "#FFFFFF"
-PRIMARIO = "#2F6F6A"
-PRIMARIO_OSCURO = "#245651"
-ACENTO = "#E0A458"
-TEXTO = "#23303A"
-TEXTO_SUAVE = "#66737E"
-BORDE = "#E3E0D8"
-EXITO = "#3D8A5A"
-ALERTA = "#C9821A"
-PELIGRO = "#B3544A"
-INFO = "#3B6EA8"
+PRIMARIO = "#0284C7"
+PRIMARIO_OSCURO = "#075985"
+ACENTO = "#38BDF8"
+TEXTO = "#1E293B"
+TEXTO_SUAVE = "#64748B"
+BORDE = "#E2E8F0"
+EXITO = "#059669"
+ALERTA = "#D97706"
+PELIGRO = "#DC2626"
+INFO = "#4F46E5"
 BLANCO = "#FFFFFF"
-LATERAL = "#1F4744"
-LATERAL_HOVER = "#2A5955"
-LATERAL_TEXTO = "#D9E8E5"
-FONDO_SUAVE = "#EFEDE6"
+LATERAL = "#0B2540"
+LATERAL_HOVER = "#133A5E"
+LATERAL_TEXTO = "#B9D7EE"
+FONDO_SUAVE = "#EAF2F9"
 
 FUENTE = ("Segoe UI", 10)
 FUENTE_BOTON = ("Segoe UI", 10, "bold")
@@ -70,7 +70,7 @@ def aplicar_tema(ventana: tk.Misc) -> ttk.Style:
                      relief="flat", padding=(18, 11), focuscolor=PRIMARIO)
     estilo.map("NavActivo.TButton", background=[("active", PRIMARIO)])
     estilo.configure("Salir.TButton", background=LATERAL, foreground=LATERAL_TEXTO,
-                     borderwidth=1, bordercolor="#3E6B67", lightcolor=LATERAL,
+                     borderwidth=1, bordercolor="#24507A", lightcolor=LATERAL,
                      darkcolor=LATERAL, relief="solid", padding=(12, 7), focuscolor=LATERAL)
     estilo.map("Salir.TButton", background=[("active", LATERAL_HOVER)],
                foreground=[("active", BLANCO)])
@@ -114,46 +114,46 @@ def aplicar_tema(ventana: tk.Misc) -> ttk.Style:
                      foreground=TEXTO_SUAVE, font=FUENTE_SUAVE)
     estilo.configure("OnDark.TLabel", background=PRIMARIO, foreground=BLANCO,
                      font=FUENTE_TITULO)
-    estilo.configure("OnDarkMuted.TLabel", background=PRIMARIO, foreground="#D7E7E4",
+    estilo.configure("OnDarkMuted.TLabel", background=PRIMARIO, foreground="#CFE8F7",
                      font=FUENTE_SUAVE)
 
     estilo.configure("TButton", font=FUENTE_BOTON, background=FONDO_SUAVE,
                      foreground=TEXTO, borderwidth=1, relief="solid", padding=(12, 7),
-                     bordercolor="#D6D2C7", lightcolor=FONDO_SUAVE, darkcolor=FONDO_SUAVE,
+                     bordercolor="#CBD5E1", lightcolor=FONDO_SUAVE, darkcolor=FONDO_SUAVE,
                      focuscolor=FONDO_SUAVE)
-    estilo.map("TButton", background=[("active", "#E4E1D8"), ("disabled", "#ECEAE2")],
+    estilo.map("TButton", background=[("active", "#DCEAF5"), ("disabled", "#EEF2F6")],
                foreground=[("disabled", TEXTO_SUAVE)])
     estilo.configure("Primary.TButton", background=PRIMARIO, foreground=BLANCO,
                      borderwidth=0, padding=(14, 8))
     estilo.map("Primary.TButton", background=[("active", PRIMARIO_OSCURO),
-                                              ("disabled", "#B9C9C6")],
-               foreground=[("disabled", "#EFF3F2")])
-    estilo.configure("Accent.TButton", background=ACENTO, foreground="#2B2115",
+                                              ("disabled", "#A5CDE6")],
+               foreground=[("disabled", "#F0F7FC")])
+    estilo.configure("Accent.TButton", background=ACENTO, foreground="#0B2540",
                      borderwidth=0, padding=(14, 8))
-    estilo.map("Accent.TButton", background=[("active", "#CE943F"),
-                                             ("disabled", "#EDE2D0")])
+    estilo.map("Accent.TButton", background=[("active", "#7DD3FC"),
+                                             ("disabled", "#E0F2FE")])
     estilo.configure("Danger.TButton", background=PELIGRO, foreground=BLANCO,
                      borderwidth=0, padding=(10, 6))
 
     for nombre in ("TEntry", "TCombobox", "TSpinbox"):
         estilo.configure(nombre, fieldbackground=SUPERFICIE, foreground=TEXTO,
-                         bordercolor="#CFCBC0", lightcolor=SUPERFICIE, darkcolor=SUPERFICIE,
+                         bordercolor="#CBD5E1", lightcolor=SUPERFICIE, darkcolor=SUPERFICIE,
                          padding=7, insertcolor=TEXTO, arrowcolor=TEXTO_SUAVE)
         # Borde del color principal mientras el campo tiene el foco.
         estilo.map(nombre, bordercolor=[("focus", PRIMARIO)],
                    lightcolor=[("focus", PRIMARIO)], darkcolor=[("focus", PRIMARIO)])
-    estilo.map("TCombobox", fieldbackground=[("readonly", SUPERFICIE), ("disabled", "#F2F1EC")],
+    estilo.map("TCombobox", fieldbackground=[("readonly", SUPERFICIE), ("disabled", "#F1F5F9")],
                bordercolor=[("focus", PRIMARIO)])
-    estilo.map("TEntry", fieldbackground=[("readonly", "#F2F1EC")])
+    estilo.map("TEntry", fieldbackground=[("readonly", "#F1F5F9")])
 
     estilo.configure("Treeview", background=SUPERFICIE, fieldbackground=SUPERFICIE,
                      foreground=TEXTO, rowheight=30, bordercolor=BORDE)
     estilo.map("Treeview", background=[("selected", PRIMARIO)],
                foreground=[("selected", BLANCO)])
-    estilo.configure("Treeview.Heading", background="#ECEAE2",
+    estilo.configure("Treeview.Heading", background="#EEF2F6",
                      foreground=PRIMARIO_OSCURO, font=FUENTE_BOTON,
                      relief="flat", padding=(6, 8))
-    estilo.map("Treeview.Heading", background=[("active", "#DEDCD3")])
+    estilo.map("Treeview.Heading", background=[("active", "#DCEAF5")])
 
     estilo.configure("TNotebook", background=FONDO, borderwidth=1,
                      tabmargins=(0, 4, 0, 0), bordercolor=BORDE,
@@ -175,11 +175,11 @@ def aplicar_tema(ventana: tk.Misc) -> ttk.Style:
                      focuscolor=FONDO)
     estilo.configure("TCheckbutton", background=FONDO, foreground=TEXTO,
                      focuscolor=FONDO)
-    estilo.configure("TScrollbar", background="#DAD7CE", troughcolor=FONDO,
+    estilo.configure("TScrollbar", background="#CBD5E1", troughcolor=FONDO,
                      borderwidth=0, arrowcolor=TEXTO_SUAVE)
     estilo.configure("TSeparator", background=BORDE)
     estilo.configure("Horizontal.TProgressbar", background=PRIMARIO,
-                     troughcolor="#E6E3DA", borderwidth=0)
+                     troughcolor="#E2EAF2", borderwidth=0)
     return estilo
 
 
