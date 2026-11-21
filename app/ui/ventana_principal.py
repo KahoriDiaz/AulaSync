@@ -13,7 +13,7 @@ from app.servicios import auth
 from app.ui.tema import aplicar_tema, cabecera
 from app.ui.secretaria.consultas import Consultas
 from app.ui.secretaria.mantenimiento import Mantenimiento
-from app.ui.secretaria.panel import PanelRelaciones
+from app.ui.secretaria.inicio import Inicio
 from app.ui.secretaria.realizar_matricula import RealizarMatricula
 
 
@@ -54,7 +54,7 @@ class VentanaPrincipal(tk.Tk):
         self.notebook = ttk.Notebook(self)
         self.notebook.pack(fill="both", expand=True, padx=8, pady=(4, 8))
         self.pestanas: dict[str, tk.Widget] = {}
-        self._agregar("inicio", "Inicio", PanelRelaciones(self.notebook))
+        self._agregar("inicio", "Inicio", Inicio(self.notebook, navegar=self.mostrar_pestana))
         self._agregar("mantenimiento", "Mantenimiento", Mantenimiento(self.notebook))
         self._agregar("matricula", "Realizar matrícula", RealizarMatricula(self.notebook))
         self._agregar("consultas", "Consultas", Consultas(self.notebook))

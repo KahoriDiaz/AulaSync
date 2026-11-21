@@ -6,6 +6,7 @@ from tkinter import ttk
 
 from app.ui.secretaria.distribucion import Distribucion
 from app.ui.secretaria.listas import Listas
+from app.ui.secretaria.panel import PanelRelaciones
 from app.ui.secretaria.reportes import Reportes
 
 
@@ -21,6 +22,7 @@ class Consultas(ttk.Frame):
             ("Reportes (10 consultas)", Reportes),
             ("Distribución por secciones", Distribucion),
             ("Listas y comparación", Listas),
+            ("Panel de relaciones", PanelRelaciones),
         ):
             pestana = clase(self.notebook)
             self.notebook.add(pestana, text=titulo)

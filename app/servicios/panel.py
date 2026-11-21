@@ -69,3 +69,55 @@ def columnas_detalle() -> tuple[str, ...]:
         "DNI", "Estudiante", "AñoEscolar", "Nivel", "Grado", "Seccion", "Estado",
         "Responsable", "Secretaria", "NombreIE", "Padres", "Hermanos", "LogrosIE",
     )
+
+
+# ------------------------------------------------------------ pantalla Inicio
+def tarjetas_inicio(anio: int | None = None) -> list[tuple[str, int]]:
+    """Indicadores de la pantalla Inicio (solo SELECT)."""
+    from app.servicios.matricula import CAPACIDAD, NIVELES, SECCIONES
+
+    anio = anio or date.today().year
+
+    def contar(sql: str, parametros: tuple = ()) -> int:
+        fila = db.query_uno(sql, parametros)
+        return int((fila or {}).get("total") or 0)
+
+    matriculados = contar(
+        "SELECT COUNT(*) AS total FROM MATRICULA WHERE `AñoEscolar` = %s AND Estado = 'Matriculado'",
+        (anio,),
+    )
+    por_seccion = {
+        (fila["Nivel"], fila["Grado"], fila["Seccion"]): int(fila["total"])
+        for fila in db.query(
+            "SELECT Nivel, Grado, Seccion, COUNT(*) AS total FROM MATRICULA "
+            "WHERE `AñoEscolar` = %s AND Estado = 'Matriculado' GROUP BY Nivel, Grado, Seccion",
+            (anio,),
+        )
+    }
+    vacantes = sum(
+        max(0, CAPACIDAD - por_seccion.get((nivel, grado, seccion), 0))
+        for nivel, grados in NIVELES.items()
+        for grado in grados
+        for seccion in SECCIONES[nivel]
+    )
+    return [
+        (f"Matriculados {anio}", matriculados),
+        ("Estudiantes registrados", contar("SELECT COUNT(*) AS total FROM ESTUDIANTE")),
+        ("Padres / apoderados", contar("SELECT COUNT(*) AS total FROM PADRE_APODERADO")),
+        ("Secretarias activas", contar(
+            "SELECT COUNT(*) AS total FROM SECRETARIA s INNER JOIN USUARIO u ON u.DNI = s.DNI "
+            "WHERE u.Estado = 'Activo'"
+        )),
+        (f"Vacantes disponibles {anio}", vacantes),
+    ]
+
+
+def matriculados_por_grado(anio: int | None = None) -> list[dict[str, Any]]:
+    """Matriculados del año por nivel y grado."""
+    return db.query(
+        "SELECT Nivel, Grado, COUNT(*) AS Matriculados FROM MATRICULA "
+        "WHERE `AñoEscolar` = %s AND Estado = 'Matriculado' "
+        "GROUP BY Nivel, Grado "
+        "ORDER BY FIELD(Nivel, 'Inicial', 'Primaria', 'Secundaria'), Grado",
+        (anio or date.today().year,),
+    )
