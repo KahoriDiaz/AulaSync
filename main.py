@@ -31,7 +31,8 @@ def base_datos_valida() -> bool:
         return False
 
 
-def lanzar_login() -> None:
+def lanzar_login() -> bool:
+    """Muestra el login; devuelve True si la secretaria ingresó correctamente."""
     root = tk.Tk()
     aplicar_tema(root)
     root.withdraw()
@@ -52,11 +53,19 @@ def lanzar_login() -> None:
 
     root.mainloop()
     root.destroy()
+    return acceso["exito"]
 
-    # Abrir la ventana principal después de finalizar el login.
-    if acceso["exito"]:
-        from app.ui.ventana_principal import abrir_ventana_principal
-        abrir_ventana_principal()
+
+def ejecutar_sesiones() -> None:
+    """Alterna login y ventana principal hasta que el usuario salga.
+
+    "Cerrar sesión" vuelve al login; cerrar la ventana o "Salir" termina.
+    """
+    from app.ui.ventana_principal import abrir_ventana_principal
+
+    while lanzar_login():
+        if not abrir_ventana_principal():
+            break
 
 
 def main() -> None:
@@ -71,7 +80,7 @@ def main() -> None:
         if not conexion_valida() or not base_datos_valida():
             return
 
-    lanzar_login()
+    ejecutar_sesiones()
 
 
 if __name__ == "__main__":

@@ -36,7 +36,7 @@ class VentanaPrincipal(tk.Tk):
     def __init__(self):
         super().__init__()
         aplicar_tema(self)
-        sesion = auth.sesion_actual()
+        self.sesion_cerrada = False
         self.title("AulaSync - Bandeja de solicitudes")
         self.geometry("1000x600")
         self._construir_menu()
@@ -676,6 +676,7 @@ class VentanaPrincipal(tk.Tk):
 
     def cerrar_sesion(self):
         auth.logout()
+        self.sesion_cerrada = True
         self.destroy()
 
     def _ayuda(self):
@@ -688,6 +689,8 @@ class VentanaPrincipal(tk.Tk):
         )
 
 
-def abrir_ventana_principal():
+def abrir_ventana_principal() -> bool:
+    """Abre la ventana principal; devuelve True si el usuario cerró sesión."""
     app = VentanaPrincipal()
     app.mainloop()
+    return app.sesion_cerrada
