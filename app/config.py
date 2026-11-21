@@ -91,6 +91,15 @@ class Configuracion:
         )
         with CONFIG_FILE.open("w", encoding="utf-8") as f:
             self.parser.write(f)
+        # Mantener la instancia en memoria igual que el archivo reciÃ©n escrito,
+        # para que las conexiones siguientes usen los datos nuevos.
+        self.host = bd["host"]
+        self.port = int(bd["port"])
+        self.user = bd["user"]
+        self.password = bd["password"]
+        self.database = bd["database"]
+        self.url_consulta_constancia = self.parser["app"]["url_consulta_constancia"]
+        self.tesseract_cmd = self.parser["app"]["tesseract_cmd"]
 
     @property
     def kwargs(self) -> dict[str, Any]:
