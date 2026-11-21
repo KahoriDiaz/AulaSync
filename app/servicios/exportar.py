@@ -102,6 +102,11 @@ def guardar_excel(
         hoja.freeze_panes = "A2"
     for fila in cuerpo:
         hoja.append(fila)
+        # openpyxl interpreta como fórmula cualquier texto que empiece con "=";
+        # los datos se guardan siempre como texto para evitar inyección de fórmulas.
+        for celda in hoja[hoja.max_row]:
+            if celda.data_type == "f":
+                celda.data_type = "s"
     if encabezados and cuerpo:
         hoja.auto_filter.ref = f"A1:{get_column_letter(len(encabezados))}{len(cuerpo) + 1}"
     for indice, columna in enumerate(encabezados or (), 1):
