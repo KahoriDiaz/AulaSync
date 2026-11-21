@@ -6,13 +6,7 @@ sin MySQL se omiten, para que ``pytest`` corra sin fallos en cualquier equipo.
 """
 from __future__ import annotations
 
-collect_ignore = [
-    "test_almacen.py",
-    "test_formatos.py",
-    "test_servicios.py",
-    "test_solicitudes.py",
-    "test_validaciones.py",
-]
+collect_ignore: list[str] = []
 
 _PRUEBAS_BD = ["test_integracion_db.py", "test_sql.py"]
 
