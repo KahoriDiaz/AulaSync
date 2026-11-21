@@ -14,7 +14,26 @@ from app.config import config
 from app.errores import ErrorBaseDatos, traducir_error
 
 
+TAMANIO_POOL = 8
+_pools: dict[tuple, Any] = {}
+
+
+def _pool(kwargs: dict[str, Any]):
+    """Pool de conexiones por configuración: abrir una conexión nueva cuesta
+    ~0,2 s (autenticación y SSL), y una pantalla hace decenas de consultas."""
+    from mysql.connector import pooling
+
+    clave = tuple(sorted(kwargs.items()))
+    if clave not in _pools:
+        _pools[clave] = pooling.MySQLConnectionPool(
+            pool_name=f"aulasync{len(_pools)}", pool_size=TAMANIO_POOL,
+            pool_reset_session=True, **kwargs,
+        )
+    return _pools[clave]
+
+
 def conectar(database: str | None = None) -> mysql.connector.MySQLConnection:
+    """Conexión del pool; al cerrarla vuelve al pool con la sesión reiniciada."""
     kwargs = dict(
         host=config.host,
         port=config.port,
@@ -27,7 +46,11 @@ def conectar(database: str | None = None) -> mysql.connector.MySQLConnection:
     )
     kwargs["database"] = database or config.database
     try:
-        return mysql.connector.connect(**kwargs)
+        try:
+            return _pool(kwargs).get_connection()
+        except mysql.connector.errors.PoolError:
+            # Pool agotado (muchas conexiones abiertas a la vez): conexión directa.
+            return mysql.connector.connect(**kwargs)
     except mysql.connector.Error as exc:
         raise ErrorBaseDatos(
             "No se pudo conectar a la base de datos. Verifique que MySQL esté encendido "
