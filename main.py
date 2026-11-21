@@ -8,12 +8,12 @@ from __future__ import annotations
 
 import threading
 import tkinter as tk
-from tkinter import messagebox, ttk
+from tkinter import messagebox
 
 from app import servidor_bd
 from app.config import config
 from app.db import conectar
-from app.ui.tema import aplicar_tema
+from app.ui.tema import PantallaCarga, aplicar_tema
 
 
 def conexion_valida() -> bool:
@@ -76,35 +76,28 @@ def ejecutar_sesiones() -> None:
 
 
 def iniciar_base_portatil() -> bool:
-    """Enciende el MySQL portátil mostrando el avance; False si no se pudo."""
-    ventana = tk.Tk()
-    aplicar_tema(ventana)
-    ventana.title("AulaSync")
-    ventana.resizable(False, False)
-    marco = ttk.Frame(ventana, padding=24)
-    marco.pack(fill="both", expand=True)
-    ttk.Label(marco, text="AulaSync", style="Titulo.TLabel").pack(anchor="w")
-    estado = tk.StringVar(value="Iniciando la base de datos...")
-    ttk.Label(marco, textvariable=estado, width=48).pack(anchor="w", pady=(8, 8))
-    barra = ttk.Progressbar(marco, mode="indeterminate", length=360)
-    barra.pack(fill="x")
-    barra.start(12)
+    """Enciende el MySQL portátil mostrando una pantalla de carga; False si falla."""
+    raiz = tk.Tk()
+    aplicar_tema(raiz)
+    raiz.withdraw()
+    carga = PantallaCarga(raiz, "Iniciando la base de datos...")
     resultado: dict[str, object] = {}
 
     def trabajar():
         try:
-            servidor_bd.iniciar(lambda texto: ventana.after(0, estado.set, texto))
+            servidor_bd.iniciar(lambda texto: raiz.after(0, carga.var_mensaje.set, texto))
         except Exception as exc:  # se muestra al usuario
             resultado["error"] = exc
-        ventana.after(0, ventana.quit)
+        raiz.after(0, raiz.quit)
 
     threading.Thread(target=trabajar, daemon=True).start()
-    ventana.protocol("WM_DELETE_WINDOW", lambda: None)  # esperar a que termine
-    ventana.mainloop()
+    raiz.mainloop()
+    carga.destroy()
     error = resultado.get("error")
     if error:
-        messagebox.showerror("AulaSync", f"No se pudo iniciar la base de datos:\n{error}", parent=ventana)
-    ventana.destroy()
+        messagebox.showerror("AulaSync", f"No se pudo iniciar la base de datos:\n{error}",
+                             parent=raiz)
+    raiz.destroy()
     return error is None
 
 
