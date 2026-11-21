@@ -22,6 +22,7 @@ class VentanaLogin(tk.Toplevel):
         self.title("AulaSync - Ingreso de secretaria")
         self.resizable(False, False)
         self.exito_callback = exito_callback
+        self._ingreso_exitoso = False
         self._construir_ui()
         self._refrescar_estado()
 
@@ -68,6 +69,8 @@ class VentanaLogin(tk.Toplevel):
         self.lbl_msg.grid(row=7, column=0, sticky="w", pady=(10, 0))
 
     def _refrescar_estado(self):
+        if self._ingreso_exitoso:
+            return
         if auth.autenticacion.esta_bloqueado():
             segs = auth.autenticacion.segundos_restantes_bloqueo()
             self.lbl_bloqueo.config(
@@ -85,6 +88,8 @@ class VentanaLogin(tk.Toplevel):
         self.after(1000, self._refrescar_estado)
 
     def ingresar(self):
+        if self._ingreso_exitoso:
+            return
         dni = self.ent_dni.get().strip()
         clave = self.ent_clave.get()
         if not dni or not clave:
@@ -98,6 +103,10 @@ class VentanaLogin(tk.Toplevel):
             self.lbl_msg.config(text=str(exc), foreground=PELIGRO)
             return
         if resultado.exito:
+            # Evita un segundo ingreso (Enter repetido) mientras se abre la ventana.
+            self._ingreso_exitoso = True
+            self.btn_ingresar.config(state="disabled")
+            self.ent_clave.unbind("<Return>")
             self.lbl_msg.config(text=resultado.mensaje, foreground=EXITO)
             self.after(600, lambda: self.exito_callback())
         else:
