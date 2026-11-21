@@ -2,12 +2,10 @@
 from __future__ import annotations
 
 import tkinter as tk
-from pathlib import Path
 from tkinter import messagebox, ttk
 
 import mysql.connector
 
-from app import db
 from app.ui.tema import EXITO, PELIGRO, aplicar_tema, separador, tarjeta
 from app.config import config
 from app.setup_bd import (
@@ -92,24 +90,29 @@ class AsistenteConexion(tk.Tk):
 
         tarjeta_datos.columnconfigure(1, weight=1)
 
-    def _credenciales_root(self) -> tuple[str, int, str, str]:
+    def _credenciales_root(self) -> tuple[str, int, str, str] | None:
+        """Lee los datos del formulario; devuelve None si el puerto no es vÃ¡lido."""
+        texto_puerto = self.ent_port.get().strip() or "3306"
+        if not texto_puerto.isdigit() or not 0 < int(texto_puerto) < 65536:
+            self.lbl_estado.config(text="El puerto debe ser un nÃºmero entre 1 y 65535.",
+                                   foreground=PELIGRO)
+            messagebox.showerror("Dato invÃ¡lido", "El puerto debe ser un nÃºmero entre 1 y 65535.",
+                                 parent=self)
+            return None
         return (
             self.ent_host.get().strip() or "localhost",
-            int(self.ent_port.get().strip() or "3306"),
+            int(texto_puerto),
             self.ent_root_user.get().strip() or "root",
             self.ent_root_pass.get(),
         )
 
     def probar_conexion(self) -> None:
-        host, port, root_user, root_password = self._credenciales_root()
+        credenciales = self._credenciales_root()
+        if credenciales is None:
+            return
+        host, port, root_user, root_password = credenciales
+        # Conectar como administrador para obtener la versiÃ³n sin depender de que exista la BD
         try:
-            cnx = db.conectar()  # usa config (matricula_app); puede fallar si no existe BD
-        except Exception:
-            cnx = None
-        # Conectar como root para obtener la version sin depender de que exista la BD
-        try:
-            import mysql.connector
-
             root_cnx = mysql.connector.connect(
                 host=host,
                 port=port,
@@ -140,7 +143,10 @@ class AsistenteConexion(tk.Tk):
             messagebox.showerror("Error de conexion", str(exc))
 
     def crear_y_cargar(self) -> None:
-        host, port, root_user, root_password = self._credenciales_root()
+        credenciales = self._credenciales_root()
+        if credenciales is None:
+            return
+        host, port, root_user, root_password = credenciales
         app_password = "matricula_app"  # clave de la aplicacion (se guarda en config.ini)
         try:
             crear_base_y_usuario(host, port, root_user, root_password, app_password)
