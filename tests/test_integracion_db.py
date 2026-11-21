@@ -23,7 +23,7 @@ CONTEOS_ESPERADOS = {
     "CONSTANCIA_LOGROS": 3,
     "LOGRO": 8,
     "MATRICULA": 13,
-    "SECRETARIA": 1,
+    "SECRETARIA": 2,
     "USUARIO": 2,
 }
 

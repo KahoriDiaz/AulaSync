@@ -409,10 +409,19 @@ class TestTriggers(BaseBD):
             ])
 
     def test_usuario_secretaria_dni_no_en_secretaria_falla(self):
+        """El trigger se prueba con un administrador (matricula_app no puede hacer INSERT)."""
+        import os
+
         import mysql.connector
+
+        from app.config import config
+
+        if "DB_ROOT_PASSWORD" not in os.environ:
+            self.skipTest("Defina DB_ROOT_USER y DB_ROOT_PASSWORD para probar el trigger directo.")
         cnx = mysql.connector.connect(
-            host="localhost", port=3306, user="root", password="root",
-            database="bd_matricula", use_pure=True, charset="utf8mb4", autocommit=False,
+            host=config.host, port=config.port, user=os.environ.get("DB_ROOT_USER", "root"),
+            password=os.environ["DB_ROOT_PASSWORD"], database=config.database,
+            use_pure=True, charset="utf8mb4", autocommit=False,
         )
         try:
             cur = cnx.cursor()
