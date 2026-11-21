@@ -3,16 +3,20 @@
 Hace visible el modelo entity-relacional entre MATRICULA, ESTUDIANTE,
 PADRE_APODERADO, SECRETARIA, INSTITUCION_EDUCATIVA, CONSTANCIA_LOGROS y las
 tablas de relación (TIENE_PADRES, HERMANDAD, ESTUDIANTE_NEE, LOGRO).
+Solo muestra matrículas del año escolar en curso para no mezclar años pasados.
 """
 from __future__ import annotations
 
+from datetime import date
 from typing import Any
 
 from app import db
 
+_ANIO_ACTUAL = date.today().year
+
 INDICADORES: tuple[tuple[str, str], ...] = (
     ("Estudiantes", "SELECT COUNT(*) AS total FROM ESTUDIANTE"),
-    ("Matrículas activas", "SELECT COUNT(*) AS total FROM MATRICULA WHERE Estado = 'Matriculado'"),
+    ("Matrículas activas", f"SELECT COUNT(*) AS total FROM MATRICULA WHERE Estado = 'Matriculado' AND `AñoEscolar` = {_ANIO_ACTUAL}"),
     ("Padres / apoderados", "SELECT COUNT(*) AS total FROM PADRE_APODERADO"),
     ("Instituciones educativas", "SELECT COUNT(*) AS total FROM INSTITUCION_EDUCATIVA"),
     ("Constancias de logros", "SELECT COUNT(*) AS total FROM CONSTANCIA_LOGROS"),
@@ -23,7 +27,7 @@ INDICADORES: tuple[tuple[str, str], ...] = (
     ("Hermanos en la I.E.", "SELECT COUNT(*) AS total FROM ESTUDIANTE_HERMANOS_IE"),
 )
 
-SQL_DETALLE = """
+SQL_DETALLE = f"""
 SELECT e.DNI,
        CONCAT(e.ApellidoPaterno, ' ', e.ApellidoMaterno, ', ', e.Nombres) AS Estudiante,
        m.`AñoEscolar`, m.Nivel, m.Grado, m.Seccion, m.Estado,
@@ -39,7 +43,8 @@ INNER JOIN ESTUDIANTE e ON m.DNI_Estudiante = e.DNI
 INNER JOIN PADRE_APODERADO p ON m.DNI_Responsable = p.DNI
 INNER JOIN SECRETARIA s ON m.DNI_Secretaria = s.DNI
 LEFT JOIN INSTITUCION_EDUCATIVA i ON e.CodigoModularIE = i.CodigoModularIE
-ORDER BY m.`AñoEscolar` DESC, e.ApellidoPaterno, e.ApellidoMaterno
+WHERE m.`AñoEscolar` = {_ANIO_ACTUAL}
+ORDER BY e.ApellidoPaterno, e.ApellidoMaterno
 """
 
 

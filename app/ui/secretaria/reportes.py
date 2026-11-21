@@ -1,7 +1,7 @@
 """Pantalla de las 10 consultas representativas (§6.3 punto 7).
 
-Cada consulta se elige por número, arranca con los parámetros del script
-`06_consultas.sql` y muestra sus resultados en una tabla exportable.
+Cada consulta tiene su propio botón. Al presionarlo se muestran sus parámetros
+y un botón para ejecutarla, con resultados en tabla exportable.
 """
 from __future__ import annotations
 
@@ -27,28 +27,43 @@ class Reportes(ttk.Frame):
         self.controles: list[tk.Entry | ttk.Combobox] = []
         self.contador_var = tk.StringVar(value="Seleccione una consulta.")
         self._construir()
-        self._seleccionar(1)
 
     def _construir(self) -> None:
-        superior = ttk.Frame(self)
-        superior.pack(fill="x", padx=6, pady=6)
-        ttk.Label(superior, text="Consulta:", font=("TkDefaultFont", 10, "bold")).pack(side="left")
-        self.lista = tk.Listbox(superior, height=6, exportselection=False)
-        self.lista.pack(side="left", fill="x", expand=True, padx=6)
-        self.lista.bind("<<ListboxSelect>>", self._al_seleccionar)
-        for consulta in reportes.todos():
-            self.lista.insert("end", f"{consulta.numero}. {consulta.titulo}")
-        self.lista.selection_set(0)
+        # Barra de botones (una por consulta)
+        botones_frame = ttk.LabelFrame(self, text="Consultas representativas")
+        botones_frame.pack(fill="x", padx=6, pady=6)
 
+        consultas = reportes.todos()
+        for idx, consulta in enumerate(consultas):
+            fila = idx // 2
+            col = idx % 2
+            btn = ttk.Button(
+                botones_frame,
+                text=f"{consulta.numero}. {consulta.titulo}",
+                command=lambda c=consulta: self._seleccionar(c),
+                width=45,
+            )
+            btn.grid(row=fila, column=col, padx=4, pady=4, sticky="ew")
+        botones_frame.columnconfigure(0, weight=1)
+        botones_frame.columnconfigure(1, weight=1)
+
+        # Título y parámetros
         self.titulo_var = tk.StringVar()
-        ttk.Label(self, textvariable=self.titulo_var, wraplength=900).pack(anchor="w", padx=8)
+        ttk.Label(self, textvariable=self.titulo_var, wraplength=900).pack(
+            anchor="w", padx=8, pady=(8, 0)
+        )
 
         self.parametros_frame = ttk.LabelFrame(self, text="Parámetros (valores del script)")
         self.parametros_frame.pack(fill="x", padx=6, pady=6)
-        self.botones = ttk.Frame(self)
-        self.botones.pack(fill="x", padx=6)
-        ttk.Button(self.botones, text="Ejecutar consulta", command=self.ejecutar).pack(side="left")
 
+        self.botones_ejec = ttk.Frame(self)
+        self.botones_ejec.pack(fill="x", padx=6)
+        self.btn_ejecutar = ttk.Button(
+            self.botones_ejec, text="Ejecutar consulta", command=self.ejecutar, state="disabled"
+        )
+        self.btn_ejecutar.pack(side="left")
+
+        # Resultado
         resultado = ttk.LabelFrame(self, text="Resultados")
         resultado.pack(fill="both", expand=True, padx=6, pady=4)
         self.tabla = Tabla(resultado, columnas=(), anchos={})
@@ -62,25 +77,16 @@ class Reportes(ttk.Frame):
         ttk.Label(self, textvariable=self.contador_var).pack(anchor="w", padx=8, pady=4)
 
     def recargar(self) -> None:
-        """No vuelve a consultar la BD hasta que el usuario ejecute una consulta."""
+        pass
 
-    def _al_seleccionar(self, _evento=None) -> None:
-        seleccion = self.lista.curselection()
-        if seleccion:
-            self._seleccionar(int(seleccion[0]) + 1)
-
-    def _seleccionar(self, numero: int) -> None:
-        try:
-            consulta = reportes.obtener(numero)
-        except errores.ErrorApp as exc:
-            messagebox.showerror("Error", str(exc), parent=self)
-            return
+    def _seleccionar(self, consulta: reportes.Reporte) -> None:
         self.reporte_actual = consulta
-        self.tabla.reconfigurar(consulta.columnas)
         self.titulo_var.set(
             f"{consulta.numero}. {consulta.titulo}    "
             f"(JOIN: {consulta.joins}; parámetros: {len(consulta.parametros)})"
         )
+        self.btn_ejecutar.config(state="normal")
+
         for hijo in self.parametros_frame.winfo_children():
             hijo.destroy()
         self.vars_parametros.clear()
@@ -111,7 +117,6 @@ class Reportes(ttk.Frame):
         if consulta is None:
             return
         valores = tuple(variable.get() for variable in self.vars_parametros)
-        # Los años se enhilan como número para conservar el tipo del script.
         valores = tuple(
             int(valor) if nombre == "Año" and str(valor).strip().isdigit() else valor
             for nombre, valor in zip(consulta.parametros, valores)

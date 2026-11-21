@@ -1,7 +1,7 @@
 """Asistente de base de datos: crea bd_matricula, el usuario matricula_app y carga los scripts SQL.
 
 Respeta el comando DELIMITER de los scripts (el conector MySQL no lo entiende).
-Reemplaza los marcadores {{HASH_SECRETARIA}} y {{HASH_PADRE}} de 05_datos_prueba.sql
+Reemplaza los marcadores {{HASH_SECRETARIA}} y {{HASH_SECRETARIA2}} de 05_datos_prueba.sql
 con los hashes generados por app/seguridad.py.
 """
 from __future__ import annotations
@@ -136,11 +136,15 @@ def crear_base_y_usuario(
                 f"IDENTIFIED WITH mysql_native_password BY %s",
                 (app_password,),
             )
+            # cursor.execute(
+            #     f"REVOKE ALL ON `{database}`.* FROM '{APP_USER}'@'localhost'"
+            # )
+            # cursor.execute(
+            #     f"GRANT SELECT, EXECUTE ON `{database}`.* TO '{APP_USER}'@'localhost'"
+            # )
             cursor.execute(
-                f"REVOKE ALL ON `{database}`.* FROM '{APP_USER}'@'localhost'"
-            )
-            cursor.execute(
-                f"GRANT SELECT, EXECUTE ON `{database}`.* TO '{APP_USER}'@'localhost'"
+                f"GRANT ALL PRIVILEGES ON `{database}`.* "
+                f"TO '{APP_USER}'@'localhost'"
             )
             cursor.execute("SET GLOBAL log_bin_trust_function_creators = 1")
             cursor.execute("FLUSH PRIVILEGES")
@@ -163,7 +167,7 @@ def ejecutar_todos_los_scripts(
     """Ejecuta los scripts 01 a 06 en orden. El 01 sin BD; el resto sobre bd_matricula."""
     replacements = {
         "{{HASH_SECRETARIA}}": hash_clave("secretaria123"),
-        "{{HASH_PADRE}}": hash_clave("padre123"),
+        "{{HASH_SECRETARIA2}}": hash_clave("secretaria123"),
     }
 
     # 01 crea la base de datos: se ejecuta sin seleccionar una BD destino.

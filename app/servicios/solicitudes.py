@@ -282,23 +282,11 @@ def _sesion():
     return sesion
 
 
-def _exigir_padre() -> Any:
-    sesion = _sesion()
-    if sesion.rol != "Padre":
-        raise ErrorPermiso("Solo el padre o apoderado puede crear y enviar solicitudes.")
-    return sesion
-
-
 def _exigir_secretaria() -> Any:
     sesion = _sesion()
     if sesion.rol != "Secretaria":
         raise ErrorPermiso("Solo la secretaria puede revisar solicitudes.")
     return sesion
-
-
-def _verificar_propietario(solicitud: dict[str, Any], sesion: Any) -> None:
-    if str(solicitud.get("dni_solicitante", "")) != str(sesion.dni):
-        raise ErrorPermiso("No puede acceder a una solicitud de otro padre/apoderado.")
 
 
 # ------------------------------------------------------------------ lectura/escritura
@@ -333,13 +321,11 @@ def guardar_solicitud(solicitud: dict[str, Any], estado: str = "pendientes") -> 
 
 
 def obtener(id_solicitud: str, estado: str = "pendientes") -> dict[str, Any]:
-    """Carga una solicitud, comprobando el permiso del usuario activo."""
+    """Carga una solicitud; solo la secretaria puede leer solicitudes."""
     sesion = _sesion()
-    datos = _leer_json(ruta_solicitud(id_solicitud, estado))
-    if sesion.rol == "Padre":
-        _verificar_propietario(datos, sesion)
-    elif sesion.rol != "Secretaria":
+    if sesion.rol != "Secretaria":
         raise ErrorPermiso("Rol no autorizado para leer solicitudes.")
+    datos = _leer_json(ruta_solicitud(id_solicitud, estado))
     return datos
 
 
@@ -348,11 +334,9 @@ def listar_solicitudes(
     dni_solicitante: str | None = None,
     etapa: str | None = None,
 ) -> list[dict[str, Any]]:
-    """Lista solicitudes de una bandeja; un padre solo ve las suyas (§13.1)."""
+    """Lista solicitudes de una bandeja (solo secretaria)."""
     sesion = _sesion()
-    if sesion.rol == "Padre":
-        dni_solicitante = str(sesion.dni)
-    elif sesion.rol != "Secretaria":
+    if sesion.rol != "Secretaria":
         raise ErrorPermiso("Rol no autorizado para listar solicitudes.")
 
     resultado: list[dict[str, Any]] = []
@@ -429,60 +413,6 @@ def generar_id(anio: int) -> str:
 
 
 # ---------------------------------------------------------------------- cambios
-def crear_borrador(
-    anio: int | None = None, etapa: str = "vacante"
-) -> dict[str, Any]:
-    """Crea una solicitud nueva en Borrador para el padre con sesión activa."""
-    sesion = _exigir_padre()
-    if etapa not in ETAPAS:
-        raise ErrorValidacion("Etapa de solicitud no válida.")
-    anio = int(anio or (date.today().year + 1))
-    datos = plantilla_solicitud(anio, sesion.dni)
-    datos["etapa"] = etapa
-    if etapa == "vacante":
-        from app.servicios import auth
-
-        perfil = auth.leer_perfil(sesion.dni)
-        datos["contacto"] = {
-            "nombres_apoderado": str(perfil.get("nombres_apoderado", "")),
-            "celular": str(perfil.get("celular", "")),
-            "correo": str(perfil.get("correo", "")),
-        }
-    datos["id"] = generar_id(anio)
-    guardar_solicitud(datos)
-    return datos
-
-
-def _fusionar(destino: dict[str, Any], cambios: dict[str, Any]) -> None:
-    """Fusiona cambios respetando los diccionarios anidados de la ficha."""
-    for clave, valor in cambios.items():
-        if clave in ("id", "dni_solicitante", "estado", "fecha_envio", "historial"):
-            continue
-        if isinstance(valor, dict) and isinstance(destino.get(clave), dict):
-            _fusionar(destino[clave], valor)
-        else:
-            destino[clave] = valor
-
-
-def actualizar(id_solicitud: str, cambios: dict[str, Any]) -> dict[str, Any]:
-    """Actualiza un borrador o una solicitud observada devuelta por la secretaria."""
-    sesion = _exigir_padre()
-    datos = obtener(id_solicitud)
-    if datos["estado"] not in ("Borrador", "Observada", "Vacante aceptada"):
-        raise ErrorValidacion(
-            f"La solicitud {datos['estado']} ya no puede modificarse."
-        )
-    _verificar_propietario(datos, sesion)
-    _fusionar(datos, cambios)
-    datos["historial"].append({
-        "fecha": datetime.now().isoformat(timespec="seconds"),
-        "accion": "Actualización de datos por el padre",
-        "usuario": str(sesion.dni),
-    })
-    guardar_solicitud(datos)
-    return datos
-
-
 def _fecha(valor: Any) -> date | None:
     if isinstance(valor, datetime):
         return valor.date()
@@ -816,35 +746,6 @@ def validar_vacante(solicitud: dict[str, Any]) -> list[str]:
             errores.append(f"Hijo {indice}: condición declarada no válida.")
     errores.extend(_errores_duplicados(dnis, anio, str(solicitud.get("id", ""))))
     return errores
-
-
-def enviar(id_solicitud: str) -> dict[str, Any]:
-    """Pasa una solicitud de Borrador/Observada a Enviada tras validarla."""
-    sesion = _exigir_padre()
-    datos = obtener(id_solicitud)
-    _verificar_propietario(datos, sesion)
-    if datos["estado"] not in ("Borrador", "Observada", "Vacante aceptada"):
-        raise ErrorValidacion(
-            f"Una solicitud {datos['estado']} no puede enviarse nuevamente."
-        )
-    etapa = etapa_de(datos)
-    # Tras aceptar la vacante el envío ya es de matrícula; en los demás casos
-    # se conserva la etapa (Borrador/Observada de vacante siguen siendo vacante).
-    etapa_destino = "matricula" if datos["estado"] == "Vacante aceptada" else etapa
-    validar_transicion(datos["estado"], "Enviada", etapa, etapa_destino)
-    errores = validar_vacante(datos) if etapa == "vacante" else validar_para_enviar(datos)
-    if errores:
-        raise ErrorValidacion("No se puede enviar la solicitud:\n- " + "\n- ".join(errores))
-    datos["estado"] = "Enviada"
-    datos["etapa"] = etapa_destino
-    datos["fecha_envio"] = datetime.now().isoformat(timespec="seconds")
-    datos["historial"].append({
-        "fecha": datos["fecha_envio"],
-        "accion": "Envío de la solicitud",
-        "usuario": str(sesion.dni),
-    })
-    guardar_solicitud(datos)
-    return datos
 
 
 # ------------------------------------------------------- acciones de secretaría

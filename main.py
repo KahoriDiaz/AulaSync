@@ -1,16 +1,9 @@
-"""Punto de entrada del aplicativo de escritorio AulaSync.
 
-Flujo de arranque (§4):
-1. Lee config.ini. Si no existe o la conexión falla → abre el asistente de conexión.
-2. El asistente prueba la conexión y, opcionalmente, crea bd_matricula y carga
-   los datos de prueba (guarda config.ini con matricula_app; la clave de root
-   NO se guarda).
-3. Luego muestra el login.
-4. Tras el login, muestra la ventana principal según el rol.
-"""
+"""Punto de entrada del aplicativo AulaSync."""
 from __future__ import annotations
 
 import tkinter as tk
+from tkinter import messagebox
 
 from app.config import config
 from app.db import conectar
@@ -19,37 +12,83 @@ from app.ui.tema import aplicar_tema
 
 def conexion_valida() -> bool:
     try:
-        conectar()
+        cnx = conectar()
+        cnx.close()
         return True
     except Exception:
         return False
 
 
+def base_datos_valida() -> bool:
+    try:
+        cnx = conectar()
+        cursor = cnx.cursor()
+        cursor.execute("SHOW TABLES LIKE 'USUARIO'")
+        existe = cursor.fetchone() is not None
+        cursor.close()
+        cnx.close()
+        return existe
+    except Exception:
+        return False
+
+
+# def lanzar_login() -> None:
+#     root = tk.Tk()
+#     aplicar_tema(root)
+#     root.withdraw()
+
+#     def al_exito():
+#         root.destroy()
+#         from app.ui.ventana_principal import abrir_ventana_principal
+#         abrir_ventana_principal()
+
+#     from app.ui.login import VentanaLogin
+
+#     dlg = VentanaLogin(root, al_exito)
+#     dlg.protocol("WM_DELETE_WINDOW", root.destroy)
+#     root.mainloop()
+
 def lanzar_login() -> None:
     root = tk.Tk()
     aplicar_tema(root)
-    root.withdraw()  # raíz oculta; el login es la ventana visible
+    root.withdraw()
 
-    def al_exito():
-        root.destroy()
-        from app.ui.ventana_principal import abrir_ventana_principal
-
-        abrir_ventana_principal()
+    acceso = {"exito": False}
 
     from app.ui.login import VentanaLogin
 
+    def al_exito():
+        acceso["exito"] = True
+        dlg.destroy()
+        root.quit()
+
     dlg = VentanaLogin(root, al_exito)
-    # No transient(root): en Windows una transient de una raíz withdraw() también
-    # se oculta y el login no aparece. Al cerrar el login se cierra la raíz.
-    dlg.protocol("WM_DELETE_WINDOW", root.destroy)
+
+    # Cerrar el login finaliza su ciclo de eventos.
+    dlg.protocol("WM_DELETE_WINDOW", root.quit)
+
     root.mainloop()
+    root.destroy()
+
+    # Abrir la ventana principal después de finalizar el login.
+    if acceso["exito"]:
+        from app.ui.ventana_principal import abrir_ventana_principal
+        abrir_ventana_principal()
+
 
 
 def main() -> None:
-    if not config.database or not conexion_valida():
+    if not config.database or not conexion_valida() or not base_datos_valida():
         from app.ui.asistente_conexion import AsistenteConexion
 
-        AsistenteConexion().mainloop()
+        asistente = AsistenteConexion()
+        asistente.mainloop()
+
+        # Si el usuario cierra el asistente sin completar la instalación,
+        # no continuar al login.
+        if not conexion_valida() or not base_datos_valida():
+            return
+
     lanzar_login()
 
 

@@ -21,9 +21,47 @@ def listar_estudiantes() -> list[dict[str, Any]]:
     )
 
 
-def obtener_estudiante(dni: str) -> Optional[dict[str, Any]]:
-    return db.query_uno("SELECT * FROM ESTUDIANTE WHERE DNI = %s", (dni,))
+# def obtener_estudiante(dni: str) -> Optional[dict[str, Any]]:
+#     return db.query_uno("SELECT * FROM ESTUDIANTE WHERE DNI = %s", (dni,))
 
+def obtener_estudiante(dni: str) -> Optional[dict[str, Any]]:
+    return db.query_uno(
+        """
+        SELECT
+            e.DNI,
+            e.Sexo,
+            e.Nombres,
+            e.ApellidoPaterno,
+            e.ApellidoMaterno,
+            e.FechaNacimiento,
+            e.DistritoNacimiento,
+            e.ProvinciaNacimiento,
+            e.DepartamentoNacimiento,
+            e.PaisNacimiento,
+            e.DomicilioActual,
+            e.DistritoDomicilio,
+            e.Celular,
+            e.CorreoElectronico,
+            e.Religion,
+            e.LugarQueOcupa,
+            e.TipoAtencion,
+            e.EnfermedadCronica,
+            e.ViveConPadre,
+            e.ViveConMadre,
+            e.ElPadreVive,
+            e.LaMadreVive,
+            e.IdContactoEmergencia,
+            c.NombreContactoEmergencia,
+            c.CelularEmergencia,
+            e.CodigoModularIE,
+            e.DNI_Apoderado
+        FROM ESTUDIANTE e
+        INNER JOIN CONTACTO_EMERGENCIA c
+            ON c.IdContactoEmergencia = e.IdContactoEmergencia
+        WHERE e.DNI = %s
+        """,
+        (dni,)
+    )
 
 def insertar_estudiante(parametros: Sequence[Any]) -> None:
     """parametros en el orden de sp_estudiante_insertar (sin el OUT id_contacto)."""

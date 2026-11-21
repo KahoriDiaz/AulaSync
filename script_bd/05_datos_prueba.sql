@@ -29,9 +29,10 @@ INSERT INTO PADRE_APODERADO (DNI, Sexo, Nombres, ApellidoPaterno, ApellidoMatern
     ('44512369', 'F', 'Lucía Fernanda', 'Salas', 'Pinto', '1990-09-14', 'Enfermera', 'Superior', 'Urb. Cayma Nueva B-12', 'Cayma', '054255667', '958990011', 'lucia.salas@gmail.com'),
     ('45678123', 'M', 'Pedro Pablo', 'Vilca', 'Choque', '1979-12-02', 'Chofer', 'Secundaria', 'Av. Aviación 820', 'Miraflores', NULL, '959112233', NULL),
     ('46789512', 'F', 'Gladys Marisol', 'Valdivia', 'Ramos', '1985-05-23', 'Secretaria', 'Superior', 'Calle Piérola 310', 'Yanahuara', '054228899', '960445566', 'gladys.valdivia@hotmail.com');
--- Secretaria
+-- Secretarias (varias secretarias pueden usar el sistema)
 INSERT INTO SECRETARIA (DNI, Nombres, ApellidoPaterno, ApellidoMaterno) VALUES
-    ('87733221', 'Claudia Graciela', 'Acosta', 'Neira');
+    ('87733221', 'Claudia Graciela', 'Acosta', 'Neira'),
+    ('87733222', 'Rosa Elena', 'Diaz', 'Porras');
 -- Estudiantes (DNI 56743478 y 74922482 son los DNIs del caso de prueba; los otros 8 son estudiantes adicionales)
 INSERT INTO ESTUDIANTE (DNI, Sexo, Nombres, ApellidoPaterno, ApellidoMaterno, FechaNacimiento, DistritoNacimiento, ProvinciaNacimiento, DepartamentoNacimiento, PaisNacimiento, DomicilioActual, DistritoDomicilio, Celular, CorreoElectronico, Religion, LugarQueOcupa, TipoAtencion, EnfermedadCronica, ViveConPadre, ViveConMadre, ElPadreVive, LaMadreVive, IdContactoEmergencia, CodigoModularIE, DNI_Apoderado) VALUES
     ('56743478', 'F', 'Domenica Yuri', 'Diaz', 'Acosta', '2012-05-13', 'Cayma', 'Arequipa', 'Arequipa', 'Perú', 'Av. Independencia 730', 'Paucarpata', '929294782', 'dome@gmail.com', 'Católica', 1, 'SIS', NULL, TRUE, TRUE, TRUE, TRUE, 1, '0234567', '56345876'),
@@ -116,7 +117,7 @@ INSERT INTO ESTUDIANTE_HERMANOS_IE (DNI_Estudiante, NivelHermano) VALUES
     ('78120005', 'Inicial'),
     ('78120006', 'Primaria');
 
--- Usuarios demo (§14.5): setup_bd.py reemplaza pbkdf2$200000$5963182383439fb212bce924957084ed$cb007513cbd9e5ceca5db182f36c9b795042211dc2d683ec2e0725570ace6e7a y pbkdf2$200000$b075b6e9c7975305d351c1f50b568591$51cfb9db276a40b6f315763bac6cbca82b61b1557c2c263303af3af30a732ad0
+-- Usuarios demo: setup_bd.py reemplaza los marcadores de hash
 INSERT INTO USUARIO (NombreUsuario, ClaveHash, Rol, Estado, DNI, UltimoAcceso) VALUES
     ('secretaria', 'pbkdf2$200000$5963182383439fb212bce924957084ed$cb007513cbd9e5ceca5db182f36c9b795042211dc2d683ec2e0725570ace6e7a', 'Secretaria', 'Activo', '87733221', NULL),
-    ('padre_demo', 'pbkdf2$200000$b075b6e9c7975305d351c1f50b568591$51cfb9db276a40b6f315763bac6cbca82b61b1557c2c263303af3af30a732ad0', 'Padre', 'Activo', '29481029', NULL);
+    ('secretaria2', 'pbkdf2$200000$5963182383439fb212bce924957084ed$cb007513cbd9e5ceca5db182f36c9b795042211dc2d683ec2e0725570ace6e7a', 'Secretaria', 'Activo', '87733222', NULL);

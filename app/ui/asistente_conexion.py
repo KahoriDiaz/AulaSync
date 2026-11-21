@@ -168,7 +168,7 @@ class AsistenteConexion(tk.Tk):
             messagebox.showinfo(
                 "Listo",
                 "Base de datos creada y datos de prueba cargados.\n"
-                "Usuarios demo: secretaria / secretaria123  |  padre_demo / padre123",
+                "Usuarios demo: secretaria / secretaria123  |  secretaria2 / secretaria123",
             )
             self.destroy()
         except Exception as exc:

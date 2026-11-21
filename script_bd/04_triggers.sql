@@ -178,11 +178,6 @@ BEGIN
             SIGNAL SQLSTATE '45000'
                 SET MESSAGE_TEXT = 'El DNI de una cuenta Secretaria debe estar registrado en SECRETARIA';
         END IF;
-    ELSEIF NEW.Rol = 'Padre' THEN
-        IF EXISTS (SELECT 1 FROM SECRETARIA WHERE DNI = NEW.DNI) THEN
-            SIGNAL SQLSTATE '45000'
-                SET MESSAGE_TEXT = 'El DNI de un Padre no puede estar registrado en SECRETARIA';
-        END IF;
     END IF;
 END//
 

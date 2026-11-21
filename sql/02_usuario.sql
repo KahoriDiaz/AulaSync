@@ -1,5 +1,5 @@
 -- Script 02: Tabla de soporte USUARIO (inicio de sesión del aplicativo)
--- Solo roles 'Secretaria' y 'Padre' (sin Administrador).
+-- Solo rol 'Secretaria' (sin Padre, sin Administrador).
 -- No hay FK a SECRETARIA: la validación del DNI de la secretaria se hace con trigger.
 -- No pertenece a las 12 tablas del modelo de la funcionalidad.
 USE bd_matricula;
@@ -15,7 +15,7 @@ CREATE TABLE USUARIO (
     CONSTRAINT PK_Usuario PRIMARY KEY (IdUsuario),
     CONSTRAINT UQ_Usuario_Nombre UNIQUE (NombreUsuario),
     CONSTRAINT UQ_Usuario_DNI UNIQUE (DNI),
-    CONSTRAINT CK_Usuario_Rol CHECK (Rol IN ('Secretaria','Padre')),
+    CONSTRAINT CK_Usuario_Rol CHECK (Rol IN ('Secretaria')),
     CONSTRAINT CK_Usuario_Estado CHECK (Estado IN ('Activo','Inactivo')),
     CONSTRAINT CK_Usuario_DNI CHECK (DNI REGEXP '^[0-9]{8}$')
 ) ENGINE=InnoDB;

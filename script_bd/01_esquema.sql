@@ -1,6 +1,6 @@
 -- ============================================================
--- Script 01: Creación de la base de datos bd_matricula
--- 12 tablas del modelo físico (Entrega 4) + índices secundarios
+-- Script 01: Creacion de la base de datos bd_matricula
+-- 12 tablas del modelo fisico (Entrega 4) + indices secundarios
 -- Triggers trg_hermandad_bi / trg_hermandad_bu (ya incluidos)
 -- Motor: MySQL 8.0 (InnoDB)
 -- ============================================================
@@ -203,10 +203,10 @@ CREATE TABLE LOGRO (
     CONSTRAINT FK_Logro_IE FOREIGN KEY (CodigoModularIE)
         REFERENCES INSTITUCION_EDUCATIVA(CodigoModularIE)
         ON UPDATE CASCADE ON DELETE RESTRICT,
-    CONSTRAINT CK_SituacionFinal CHECK (SituacionFinal IN ('APROBADO', 'REQUIERE RECUPERACIÓN'))
+    CONSTRAINT CK_SituacionFinal CHECK (SituacionFinal IN ('APROBADO', 'REQUIERE RECUPERACIoN'))
 ) ENGINE=InnoDB;
 
--- Índices secundarios
+-- indices secundarios
 CREATE INDEX idx_estudiante_apellidos ON ESTUDIANTE(ApellidoPaterno, ApellidoMaterno, Nombres);
 CREATE INDEX idx_estudiante_contacto ON ESTUDIANTE(IdContactoEmergencia);
 CREATE INDEX idx_estudiante_ie ON ESTUDIANTE(CodigoModularIE);

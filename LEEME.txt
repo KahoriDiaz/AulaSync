@@ -20,12 +20,12 @@ Ejecución del entregable
       Esto crea bd_matricula, el usuario matricula_app y carga los scripts 01 a 06.
 4. La clave del administrador de MySQL se pide de forma transitoria y NUNCA se guarda.
    Junto al .exe se crea config.ini con el usuario matricula_app / clave matricula_app.
-5. Ingresar con los usuarios demo:
+5. Ingresar con los usuarios demo de secretaria:
 
    Usuario        Clave             Rol
    -------------------------------------------
    secretaria     secretaria123     Secretaria
-   padre_demo     padre123          Padre
+   secretaria2    secretaria123     Secretaria
 
 6. Desde la cuenta secretaria revisar: Mantenimiento, Distribución, Listas y
    comparación, Reportes (10 consultas, 6 con JOIN, exportación Excel/PDF/CSV),
@@ -33,7 +33,6 @@ Ejecución del entregable
    "Bandeja de solicitudes" y "Vacantes por atender". Al revisar una solicitud,
    el semáforo valida DNI, duplicados, grado, cupo, documentos y responsable;
    sugiere la sección con más vacantes y avisa si el alumno ya está registrado.
-   Desde padre_demo, "Mis solicitudes" y "Solicitar vacante".
 
 Flujo en dos etapas (nuevo)
 ---------------------------

@@ -784,7 +784,7 @@ BEGIN
         SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'El DNI ya tiene una cuenta de usuario';
     END IF;
     INSERT INTO USUARIO (NombreUsuario, ClaveHash, Rol, Estado, DNI)
-    VALUES (p_nombre_usuario, p_clave_hash, 'Padre', 'Activo', p_dni);
+    VALUES (p_nombre_usuario, p_clave_hash, 'Secretaria', 'Activo', p_dni);
     SELECT LAST_INSERT_ID() AS id_usuario;
 END//
 
