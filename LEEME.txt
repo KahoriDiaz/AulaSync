@@ -63,6 +63,7 @@ Estructura del ZIP
 Entrega5_GrupoXX.zip
 ├─ AulaSync/        (AulaSync.exe + dependencias + sql/ + tesseract/ + mysql/ portátil)
 ├─ AulaSync.lnk     (acceso directo con ruta relativa)
+├─ Manual_de_usuario_AulaSync.docx  (manual en Word; también en Ayuda > Manual de usuario)
 ├─ codigo_fuente/   (proyecto sin .venv, .git, cachés ni config.ini)
 ├─ script_bd/       (los .sql 01 a 06, idénticos a sql/)
 └─ LEEME.txt

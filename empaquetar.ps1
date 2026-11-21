@@ -55,6 +55,9 @@ try {
     # 3) Scripts SQL 01 a 06 y LEEME.
     Copy-Item -Path (Join-Path $raiz 'script_bd') -Destination (Join-Path $tmp 'script_bd') -Recurse -Force
     Copy-Item -Path (Join-Path $raiz 'LEEME.txt') -Destination (Join-Path $tmp 'LEEME.txt') -Force
+    # Manual de usuario en Word junto al acceso directo (Ayuda > Manual de usuario lo abre).
+    $manual = Join-Path $raiz 'documentos\Manual_de_usuario_AulaSync.docx'
+    if (Test-Path $manual) { Copy-Item -Path $manual -Destination $tmp -Force }
 
     # 4) Acceso directo con ruta relativa: explorer.exe abre AulaSync\AulaSync.exe
     #    respecto de la carpeta donde se descomprima el ZIP.
