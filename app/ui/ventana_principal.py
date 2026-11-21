@@ -191,13 +191,6 @@ class VentanaPrincipal(tk.Tk):
         frame.contenido.pack(fill="both", expand=True)
         return frame
 
-    def _pestana_solicitudes(self):
-        frame = ttk.Frame(self.notebook)
-        self.notebook.add(frame, text="Mis solicitudes")
-        frame.contenido = MisSolicitudes(frame)
-        frame.contenido.pack(fill="both", expand=True)
-        return frame
-
     def _pestana_bandeja(self):
         frame = ttk.Frame(self.notebook)
         self.notebook.add(frame, text="Bandeja de solicitudes")
