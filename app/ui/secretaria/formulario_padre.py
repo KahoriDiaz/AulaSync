@@ -3,7 +3,10 @@ from __future__ import annotations
 
 import tkinter as tk
 from tkinter import ttk, messagebox
-from datetime import date, datetime
+from datetime import date
+
+from app.servicios.matricula import edad
+from app.ui.selector_fecha import SelectorFecha
 
 
 class FormularioPadre(tk.Toplevel):
@@ -55,6 +58,15 @@ class FormularioPadre(tk.Toplevel):
             contenedor,
             text=etiqueta
         ).pack(anchor="w", pady=(0, 3))
+
+        if tipo == "fecha":
+            # El padre o apoderado debe ser mayor de edad.
+            self.selector_fecha = SelectorFecha(
+                contenedor, anio_min=1940, anio_max=date.today().year - 18
+            )
+            self.selector_fecha.pack(anchor="w")
+            self.controles[clave] = self.selector_fecha
+            return self.selector_fecha
 
         valor = tk.StringVar()
         self.campos[clave] = valor
@@ -141,7 +153,7 @@ class FormularioPadre(tk.Toplevel):
 
         self._campo(
             personal, "FechaNacimiento",
-            "Fecha de nacimiento (AAAA-MM-DD)", 2, 1
+            "Fecha de nacimiento", 2, 1, "fecha"
         )
 
         self._campo(
@@ -210,6 +222,9 @@ class FormularioPadre(tk.Toplevel):
 
     def _cargar_datos(self):
 
+        if self.datos.get("FechaNacimiento"):
+            self.selector_fecha.establecer(self.datos["FechaNacimiento"])
+
         for clave, variable in self.campos.items():
 
             valor = self.datos.get(clave)
@@ -217,10 +232,7 @@ class FormularioPadre(tk.Toplevel):
             if valor is None:
                 continue
 
-            if isinstance(valor, (date, datetime)):
-                variable.set(valor.strftime("%Y-%m-%d"))
-            else:
-                variable.set(str(valor))
+            variable.set(str(valor))
 
     def _obtener(self, clave):
         valor = self.campos[clave].get().strip()
@@ -234,7 +246,6 @@ class FormularioPadre(tk.Toplevel):
             "Nombres",
             "ApellidoPaterno",
             "ApellidoMaterno",
-            "FechaNacimiento",
             "GradoInstruccion",
             "DomicilioActual",
             "DistritoDomicilio",
@@ -288,23 +299,24 @@ class FormularioPadre(tk.Toplevel):
             )
             return
 
-        # Validar fecha
-        try:
-            fecha = datetime.strptime(
-                self._obtener("FechaNacimiento"),
-                "%Y-%m-%d"
-            ).date()
-
-            if fecha > date.today():
-                raise ValueError
-
-        except ValueError:
+        # Validar fecha de nacimiento (18 años o más)
+        if not self.selector_fecha.validar():
             messagebox.showwarning(
                 "Fecha inválida",
-                "Ingrese una fecha válida con formato AAAA-MM-DD.",
+                f"Fecha de nacimiento: {self.selector_fecha.mensaje_error}",
                 parent=self
             )
             return
+
+        if edad(self.selector_fecha.fecha()) < 18:
+            messagebox.showwarning(
+                "Fecha inválida",
+                "El padre o apoderado debe tener 18 años o más.",
+                parent=self
+            )
+            return
+
+        fecha = self.selector_fecha.obtener()
 
         # Validar teléfonos
         for clave in ("Celular", "TelefonoFijo"):

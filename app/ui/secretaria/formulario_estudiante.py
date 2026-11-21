@@ -3,7 +3,8 @@ from __future__ import annotations
 
 import tkinter as tk
 from tkinter import ttk, messagebox
-from datetime import date, datetime
+
+from app.ui.selector_fecha import SelectorFecha
 
 
 class FormularioEstudiante(tk.Toplevel):
@@ -44,6 +45,11 @@ class FormularioEstudiante(tk.Toplevel):
             contenedor,
             text=etiqueta
         ).pack(anchor="w", pady=(0, 3))
+
+        if tipo == "fecha":
+            self.selector_fecha = SelectorFecha(contenedor, anio_min=1990)
+            self.selector_fecha.pack(anchor="w")
+            return self.selector_fecha
 
         valor = tk.StringVar()
         self.campos[clave] = valor
@@ -116,7 +122,7 @@ class FormularioEstudiante(tk.Toplevel):
         self._campo(personal, "Nombres", "Nombres", 1, 0)
         self._campo(personal, "ApellidoPaterno", "Apellido paterno", 1, 1)
         self._campo(personal, "ApellidoMaterno", "Apellido materno", 2, 0)
-        self._campo(personal, "FechaNacimiento", "Fecha de nacimiento (AAAA-MM-DD)", 2, 1)
+        self._campo(personal, "FechaNacimiento", "Fecha de nacimiento", 2, 1, "fecha")
 
         # PESTAÑA 2: NACIMIENTO Y DOMICILIO
         domicilio = self._pestana("Nacimiento y domicilio")
@@ -211,6 +217,9 @@ class FormularioEstudiante(tk.Toplevel):
 
     def _cargar_datos(self):
 
+        if self.datos.get("FechaNacimiento"):
+            self.selector_fecha.establecer(self.datos["FechaNacimiento"])
+
         for clave, variable in self.campos.items():
             valor = self.datos.get(clave)
 
@@ -222,8 +231,6 @@ class FormularioEstudiante(tk.Toplevel):
                 "ElPadreVive", "LaMadreVive"
             ):
                 variable.set("Sí" if bool(valor) else "No")
-            elif isinstance(valor, (date, datetime)):
-                variable.set(valor.strftime("%Y-%m-%d"))
             else:
                 variable.set(str(valor))
 
@@ -236,7 +243,7 @@ class FormularioEstudiante(tk.Toplevel):
         obligatorios = [
             "DNI", "Sexo", "Nombres",
             "ApellidoPaterno", "ApellidoMaterno",
-            "FechaNacimiento", "DistritoNacimiento",
+            "DistritoNacimiento",
             "ProvinciaNacimiento", "DepartamentoNacimiento",
             "PaisNacimiento", "DomicilioActual",
             "DistritoDomicilio", "LugarQueOcupa",
@@ -277,21 +284,14 @@ class FormularioEstudiante(tk.Toplevel):
             )
             return
 
-        try:
-            fecha = datetime.strptime(
-                self._obtener("FechaNacimiento"),
-                "%Y-%m-%d"
-            ).date()
-
-            if fecha > date.today():
-                raise ValueError
-        except ValueError:
+        if not self.selector_fecha.validar():
             messagebox.showwarning(
                 "Fecha inválida",
-                "Ingrese una fecha válida con formato AAAA-MM-DD.",
+                f"Fecha de nacimiento: {self.selector_fecha.mensaje_error}",
                 parent=self
             )
             return
+        fecha = self.selector_fecha.obtener()
 
         for clave in ("Celular", "CelularEmergencia"):
             valor = self._obtener(clave)
