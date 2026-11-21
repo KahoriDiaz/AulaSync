@@ -174,6 +174,11 @@ def verificar_antes_de_aprobar(solicitud: dict[str, Any]) -> list[str]:
         errores.extend(sol.validar_paso(paso, solicitud))
     if solicitud.get("estado") != "Enviada":
         errores.append("Solo se puede matricular una solicitud Enviada.")
+    if sol.etapa_de(solicitud) != "matricula":
+        errores.append(
+            "La solicitud está en la etapa Vacante: primero acepte la vacante y "
+            "complete los datos de matrícula."
+        )
     anio = solicitud.get("anio")
     for alumno in solicitud.get("alumnos", []):
         dni = str(alumno.get("ficha", {}).get("DNI", ""))
@@ -463,7 +468,7 @@ def aprobar_y_matricular(
         datos["aprobado_por"] = usuario_dni
         datos["fecha_aprobacion"] = date.today().isoformat()
         datos["advertencias_grado"] = advertencias
-        datos["historial"].append({
+        datos.setdefault("historial", []).append({
             "fecha": datos["fecha_aprobacion"],
             "accion": "Aprobación y matrícula",
             "usuario": usuario_dni,
