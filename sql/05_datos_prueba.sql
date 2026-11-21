@@ -1,5 +1,5 @@
 -- Script 05: Datos de prueba (Entrega 4, sin modificar DNIs ni valores)
--- + Usuarios demo (§14.5) con marcadores {{HASH_SECRETARIA}} y {{HASH_PADRE}}
+-- + Usuarios demo (§14.5) con marcadores {{HASH_SECRETARIA}} y {{HASH_SECRETARIA2}}
 -- que setup_bd.py reemplaza con hashes generados por app/seguridad.py.
 USE bd_matricula;
 
