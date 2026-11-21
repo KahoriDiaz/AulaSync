@@ -21,9 +21,6 @@ def listar_estudiantes() -> list[dict[str, Any]]:
     )
 
 
-# def obtener_estudiante(dni: str) -> Optional[dict[str, Any]]:
-#     return db.query_uno("SELECT * FROM ESTUDIANTE WHERE DNI = %s", (dni,))
-
 def obtener_estudiante(dni: str) -> Optional[dict[str, Any]]:
     return db.query_uno(
         """
@@ -63,6 +60,7 @@ def obtener_estudiante(dni: str) -> Optional[dict[str, Any]]:
         (dni,)
     )
 
+
 def insertar_estudiante(parametros: Sequence[Any]) -> None:
     """parametros en el orden de sp_estudiante_insertar (sin el OUT id_contacto)."""
     db.call_proc("sp_estudiante_insertar", tuple(parametros))
@@ -79,6 +77,7 @@ def eliminar_estudiante(dni: str) -> None:
 def buscar_estudiantes(
     apellido_paterno: str = "", apellido_materno: str = "", nombres: str = ""
 ) -> list[dict[str, Any]]:
-    return db.call_proc(
+    conjuntos = db.call_proc(
         "sp_buscar_estudiante", (apellido_paterno, apellido_materno, nombres)
-    )[0]
+    )
+    return list(conjuntos[0]) if conjuntos else []
