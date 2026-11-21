@@ -694,7 +694,7 @@ class VentanaPrincipal(tk.Tk):
             "AulaSync - Sistema de Registro de Matrícula\n"
             "Aplicativo de escritorio sin frameworks (tkinter + mysql-connector).\n"
             "Uso exclusivo de secretaria(s). Ingrese con DNI y clave.\n"
-            "Usuarios demo: secretaria / secretaria123  |  secretaria2 / secretaria123",
+            "Secretarias demo: DNI 87733221 / secretaria123  |  DNI 87733222 / secretaria123",
         )
 
 

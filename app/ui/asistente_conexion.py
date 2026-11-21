@@ -174,7 +174,8 @@ class AsistenteConexion(tk.Tk):
             messagebox.showinfo(
                 "Listo",
                 "Base de datos creada y datos de prueba cargados.\n"
-                "Usuarios demo: secretaria / secretaria123  |  secretaria2 / secretaria123",
+                "Ingrese con el DNI de la secretaria demo:\n"
+                "DNI 87733221 / clave secretaria123  |  DNI 87733222 / clave secretaria123",
             )
             self.destroy()
         except Exception as exc:
