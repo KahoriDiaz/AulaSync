@@ -26,15 +26,9 @@ if errorlevel 1 (
     exit /b 1
 )
 
-:: Archivos configurables y bandeja de solicitudes: FUERA del ejecutable.
+:: Archivos configurables: FUERA del ejecutable (config.ini se crea con el asistente).
 copy /y "config.ini.example" "dist\AulaSync\config.ini.example" >nul
 copy /y "LEEME.txt" "dist\AulaSync\LEEME.txt" >nul
-for %%D in (pendientes aprobadas rechazadas) do (
-    if not exist "dist\AulaSync\data\solicitudes\%%D" mkdir "dist\AulaSync\data\solicitudes\%%D"
-    rem Los ejemplos viven fuera de la bandeja real para no distribuir datos del desarrollador.
-    if exist "datos_demo\solicitudes\%%D\*.json" xcopy /e /i /y "datos_demo\solicitudes\%%D" "dist\AulaSync\data\solicitudes\%%D" >nul
-)
-if not exist "dist\AulaSync\data\perfiles" mkdir "dist\AulaSync\data\perfiles"
 
 echo.
 echo Listo: dist\AulaSync\AulaSync.exe

@@ -1,5 +1,5 @@
-# Empaqueta la entrega final: exe + codigo fuente + scripts BD + documentos + LEEME.
-# Ejecutar despues de build.bat. No incluye config.ini real ni credenciales.
+# Empaqueta la entrega final: exe + codigo fuente + scripts BD + LEEME + acceso directo.
+# Ejecutar despues de build.bat. No incluye config.ini, entornos ni archivos .md.
 $ErrorActionPreference = 'Stop'
 
 $raiz = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -12,42 +12,49 @@ $zip = Join-Path $raiz 'Entrega5_GrupoXX.zip'
 $tmp = Join-Path $env:TEMP ('aulasync_entrega_' + [guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $tmp -Force | Out-Null
 
+# Nunca se distribuyen: entornos, cache, credenciales ni especificaciones .md
+$excluirCarpetas = @('.git', '.venv', 'venv', 'entorno', 'build', 'dist', '__pycache__',
+    '.pytest_cache', '.claude', 'tesseract', 'data', 'script_bd')
+$excluirArchivos = @('*.pyc', 'config.ini', '*.md', '*.zip', '*.spec', '*.lnk')
+
+function Limpiar-Carpeta([string] $ruta) {
+    Get-ChildItem -Path $ruta -Recurse -Force -Directory -ErrorAction SilentlyContinue |
+        Where-Object { @('__pycache__', '.pytest_cache', '.git', '.venv') -contains $_.Name } |
+        Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+    Get-ChildItem -Path $ruta -Recurse -Force -File -Include $excluirArchivos -ErrorAction SilentlyContinue |
+        Remove-Item -Force -ErrorAction SilentlyContinue
+}
+
 try {
     # 1) Aplicacion compilada (exe + dependencias + sql/ + tesseract/ opcional).
     $app = Join-Path $tmp 'AulaSync'
     New-Item -ItemType Directory -Path $app -Force | Out-Null
     Copy-Item -Path (Join-Path $raiz 'dist\AulaSync\*') -Destination $app -Recurse -Force
+    Limpiar-Carpeta $app
 
-    # Limpieza: nunca distribuir credenciales ni datos generados por el desarrollador.
-    Remove-Item (Join-Path $app 'config.ini') -Force -ErrorAction SilentlyContinue
-    $bandeja = Join-Path $app 'data\solicitudes'
-    if (Test-Path $bandeja) { Remove-Item $bandeja -Recurse -Force }
-    New-Item -ItemType Directory -Path $bandeja -Force | Out-Null
-    Copy-Item -Path (Join-Path $raiz 'datos_demo\solicitudes\*') -Destination $bandeja -Recurse -Force
-    $perfiles = Join-Path $app 'data\perfiles'
-    if (Test-Path $perfiles) {
-        Get-ChildItem $perfiles -Filter '*.json' -ErrorAction SilentlyContinue |
-            Remove-Item -Force -ErrorAction SilentlyContinue
-    }
-
-    # 2) Codigo fuente documentado, sin entornos ni artefactos de compilacion.
+    # 2) Codigo fuente, sin entornos ni artefactos de compilacion.
     $fuente = Join-Path $tmp 'codigo_fuente'
     New-Item -ItemType Directory -Path $fuente -Force | Out-Null
-    $excluir = @(
-        '.git', '.venv', 'build', 'dist', '__pycache__', '.pytest_cache',
-        'tesseract', 'data', 'documentos', 'script_bd'
-    )
-    Get-ChildItem -Path $raiz -Force | Where-Object { $excluir -notcontains $_.Name } |
-        Copy-Item -Destination $fuente -Recurse -Force
-    Get-ChildItem -Path $fuente -Recurse -Include '*.pyc', 'config.ini' -ErrorAction SilentlyContinue |
-        Remove-Item -Force -ErrorAction SilentlyContinue
-    Get-ChildItem -Path $fuente -Recurse -Directory -Filter '__pycache__' -ErrorAction SilentlyContinue |
-        Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+    Get-ChildItem -Path $raiz -Force | Where-Object {
+        $excluirCarpetas -notcontains $_.Name -and -not ($_.Name -like '*.zip')
+    } | Copy-Item -Destination $fuente -Recurse -Force
+    Limpiar-Carpeta $fuente
 
-    # 3) Scripts SQL 01 a 06 y documentacion de entrega.
+    # 3) Scripts SQL 01 a 06 y LEEME.
     Copy-Item -Path (Join-Path $raiz 'script_bd') -Destination (Join-Path $tmp 'script_bd') -Recurse -Force
-    Copy-Item -Path (Join-Path $raiz 'documentos') -Destination (Join-Path $tmp 'documentos') -Recurse -Force
     Copy-Item -Path (Join-Path $raiz 'LEEME.txt') -Destination (Join-Path $tmp 'LEEME.txt') -Force
+
+    # 4) Acceso directo con ruta relativa: explorer.exe abre AulaSync\AulaSync.exe
+    #    respecto de la carpeta donde se descomprima el ZIP.
+    $shell = New-Object -ComObject WScript.Shell
+    $acceso = $shell.CreateShortcut((Join-Path $tmp 'AulaSync.lnk'))
+    $acceso.TargetPath = Join-Path $env:WINDIR 'explorer.exe'
+    $acceso.Arguments = 'AulaSync\AulaSync.exe'
+    $acceso.WorkingDirectory = ''
+    $acceso.IconLocation = 'AulaSync\AulaSync.exe,0'
+    $acceso.Description = 'Abrir AulaSync'
+    $acceso.Save()
+    Copy-Item -Path (Join-Path $tmp 'AulaSync.lnk') -Destination (Join-Path $raiz 'AulaSync.lnk') -Force
 
     if (Test-Path $zip) { Remove-Item $zip -Force }
     Compress-Archive -Path (Join-Path $tmp '*') -DestinationPath $zip -Force
