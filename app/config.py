@@ -35,6 +35,15 @@ DATOS_DIR = USER_DIR / "data"
 SOLICITUDES_DIR = DATOS_DIR / "solicitudes"
 
 
+def _puerto(valor: str | None, por_defecto: int) -> int:
+    """Convierte el puerto a entero; un valor vacÃ­o o invÃ¡lido usa el predeterminado."""
+    try:
+        puerto = int(str(valor).strip())
+    except (TypeError, ValueError):
+        return por_defecto
+    return puerto if 0 < puerto < 65536 else por_defecto
+
+
 class Configuracion:
     def __init__(self) -> None:
         # Rutas expuestas también en la instancia para servicios y OCR.
@@ -45,7 +54,7 @@ class Configuracion:
         self.CONFIG_FILE = CONFIG_FILE
         self.parser = configparser.ConfigParser()
         self.host = os.getenv("DB_HOST", "localhost")
-        self.port = int(os.getenv("DB_PORT", "3306"))
+        self.port = _puerto(os.getenv("DB_PORT"), 3306)
         self.user = os.getenv("DB_USER", "matricula_app")
         self.password = os.getenv("DB_PASSWORD", "matricula_app")
         self.database = os.getenv("DB_NAME", "bd_matricula")
@@ -59,7 +68,7 @@ class Configuracion:
             if self.parser.has_section("bd"):
                 sec = self.parser["bd"]
                 self.host = sec.get("host", self.host)
-                self.port = sec.getint("port", self.port)
+                self.port = _puerto(sec.get("port"), self.port)
                 self.user = sec.get("user", self.user)
                 self.password = sec.get("password", self.password)
                 self.database = sec.get("database", self.database)
