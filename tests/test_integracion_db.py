@@ -5,13 +5,11 @@ No dependen de servicios inexistentes: solo acceden a la BD directamente.
 """
 from __future__ import annotations
 
-import os
 import re
 import unittest
 from pathlib import Path
 
-from app.config import config
-from app.db import conectar, query, query_uno
+from app.db import conectar, query
 
 CONTEOS_ESPERADOS = {
     "CONTACTO_EMERGENCIA": 6,
@@ -77,14 +75,11 @@ class TestIntegracionBD(unittest.TestCase):
             "SELECT NombreUsuario, Rol, DNI FROM USUARIO ORDER BY NombreUsuario"
         )
         nombres = {f["NombreUsuario"] for f in filas}
-        self.assertIn("secretaria", nombres)
-        self.assertIn("padre_demo", nombres)
-        sec = [f for f in filas if f["NombreUsuario"] == "secretaria"][0]
-        self.assertEqual(sec["Rol"], "Secretaria")
-        self.assertEqual(sec["DNI"], "87733221")
-        pad = [f for f in filas if f["NombreUsuario"] == "padre_demo"][0]
-        self.assertEqual(pad["Rol"], "Padre")
-        self.assertEqual(pad["DNI"], "29481029")
+        self.assertEqual(nombres, {"secretaria", "secretaria2"})
+        por_nombre = {f["NombreUsuario"]: f for f in filas}
+        self.assertEqual(por_nombre["secretaria"]["DNI"], "87733221")
+        self.assertEqual(por_nombre["secretaria2"]["DNI"], "87733222")
+        self.assertTrue(all(f["Rol"] == "Secretaria" for f in filas))
 
     def test_las_diez_consultas_devuelven_filas(self):
         # Consulta 1

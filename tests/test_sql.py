@@ -278,13 +278,14 @@ class TestProcedimientosConstanciaLogroIE(BaseBD):
 
 class TestProcedimientosUsuario(BaseBD):
     def test_usuario_registrar_obtener_cambiar(self):
+        self.call("sp_secretaria_insertar", ("98888888", "Lucía", "Prueba", "Uno"))
         out = self.call("sp_usuario_registrar", ("usuario_test", "hash_falso", "98888888"))
         id_usuario = out[0][0]["id_usuario"] if out and out[0] else None
         self.assertIsNotNone(id_usuario)
 
         filas = self.call("sp_usuario_obtener", ("usuario_test",))
         self.assertEqual(len(filas[0]), 1)
-        self.assertEqual(filas[0][0]["Rol"], "Padre")
+        self.assertEqual(filas[0][0]["Rol"], "Secretaria")
 
         self.call("sp_usuario_cambiar_clave", (id_usuario, "hash_nuevo"))
         fila = self.query_uno("SELECT ClaveHash FROM USUARIO WHERE IdUsuario = %s", (id_usuario,))
@@ -294,11 +295,45 @@ class TestProcedimientosUsuario(BaseBD):
         fila = self.query_uno("SELECT Estado FROM USUARIO WHERE IdUsuario = %s", (id_usuario,))
         self.assertEqual(fila["Estado"], "Inactivo")
 
-    def test_usuario_registrar_rol_siempre_padre(self):
+    def test_usuario_registrar_rol_siempre_secretaria(self):
+        self.call("sp_secretaria_insertar", ("98888887", "Rosa", "Prueba", "Dos"))
         out = self.call("sp_usuario_registrar", ("usuario_test2", "hash_x", "98888887"))
         id_usuario = out[0][0]["id_usuario"] if out and out[0] else None
         fila = self.query_uno("SELECT Rol FROM USUARIO WHERE IdUsuario = %s", (id_usuario,))
-        self.assertEqual(fila["Rol"], "Padre")
+        self.assertEqual(fila["Rol"], "Secretaria")
+
+
+class TestProcedimientosSecretariaYContacto(BaseBD):
+    def test_secretaria_insertar_actualizar_eliminar(self):
+        self.call("sp_secretaria_insertar", ("98888886", "Ana", "Prueba", "Tres"))
+        self.call("sp_secretaria_actualizar", ("98888886", "Ana María", "Prueba", "Tres"))
+        fila = self.query_uno("SELECT Nombres FROM SECRETARIA WHERE DNI = %s", ("98888886",))
+        self.assertEqual(fila["Nombres"], "Ana María")
+        self.call("sp_secretaria_eliminar", ("98888886",))
+        self.assertIsNone(self.query_uno("SELECT 1 AS x FROM SECRETARIA WHERE DNI = %s", ("98888886",)))
+
+    def test_secretaria_con_matriculas_no_se_elimina(self):
+        with self.assertRaises(Exception):
+            self.call("sp_secretaria_eliminar", ("87733221",))
+
+    def test_secretaria_dni_invalido_falla(self):
+        with self.assertRaises(Exception):
+            self.call("sp_secretaria_insertar", ("123", "Ana", "Prueba", "Tres"))
+
+    def test_contacto_insertar_y_eliminar(self):
+        out = self.call("sp_contacto_insertar", ("Contacto Prueba", "911111111"))
+        id_contacto = out[0][0]["id_contacto"]
+        self.call("sp_contacto_eliminar", (id_contacto,))
+        self.assertIsNone(self.query_uno(
+            "SELECT 1 AS x FROM CONTACTO_EMERGENCIA WHERE IdContactoEmergencia = %s", (id_contacto,)))
+
+    def test_contacto_en_uso_no_se_elimina(self):
+        with self.assertRaises(Exception):
+            self.call("sp_contacto_eliminar", (1,))
+
+    def test_contacto_celular_invalido_falla(self):
+        with self.assertRaises(Exception):
+            self.call("sp_contacto_insertar", ("Contacto Prueba", "12"))
 
 
 class TestProcedimientosReportes(BaseBD):
