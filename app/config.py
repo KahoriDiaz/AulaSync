@@ -32,7 +32,6 @@ USER_DIR, RECURSOS_DIR = _rutas()
 BASE_DIR = RECURSOS_DIR  # alias de compatibilidad con código anterior
 CONFIG_FILE = USER_DIR / "config.ini"
 DATOS_DIR = USER_DIR / "data"
-SOLICITUDES_DIR = DATOS_DIR / "solicitudes"
 
 
 def _puerto(valor: str | None, por_defecto: int) -> int:
@@ -50,7 +49,6 @@ class Configuracion:
         self.USER_DIR = USER_DIR
         self.RECURSOS_DIR = RECURSOS_DIR
         self.DATOS_DIR = DATOS_DIR
-        self.SOLICITUDES_DIR = SOLICITUDES_DIR
         self.CONFIG_FILE = CONFIG_FILE
         self.parser = configparser.ConfigParser()
         self.host = os.getenv("DB_HOST", "localhost")

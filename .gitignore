@@ -19,7 +19,6 @@ tesseract/*
 !tesseract/tessdata/
 tesseract/tessdata/*
 !tesseract/tessdata/spa.traineddata
-data/perfiles/*.json
 docs/*.docx
 docs/*.pdf
 
@@ -33,4 +32,3 @@ dist/
 Thumbs.db
 desktop.ini
 
-data/solicitudes/
