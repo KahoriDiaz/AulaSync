@@ -57,12 +57,34 @@ class TestInterfazTkinter(unittest.TestCase):
                 self.assertIsNone(re.search(r"\blogo\b", fuente, re.IGNORECASE))
                 self.assertNotIn("nombre de la institución", fuente.lower())
 
-    def test_menu_expone_el_nuevo_flujo(self) -> None:
+    def test_menu_principal(self) -> None:
+        """Menú final: Archivo | Inicio | Mantenimiento | Realizar matrícula | Consultas | Ayuda."""
         principal = (RAIZ / "app/ui/ventana_principal.py").read_text(encoding="utf-8")
-        bandeja = (RAIZ / "app/ui/padre/mis_solicitudes.py").read_text(encoding="utf-8")
-        self.assertIn("Solicitar vacante", principal)
-        self.assertIn("Vacantes por atender", principal)
-        self.assertIn("Completar matrícula", bandeja)
+        etiquetas = re.findall(r'barra\.add_(?:cascade|command)\(label="([^"]+)"', principal)
+        self.assertEqual(
+            etiquetas,
+            ["Archivo", "Inicio", "Mantenimiento", "Realizar matrícula", "Consultas", "Ayuda"],
+        )
+        for retirado in ("Bandeja de solicitudes", "Vacantes por atender", "Subir ficha",
+                         "Subir constancia", "MisSolicitudes", "_pestana_solicitudes"):
+            self.assertNotIn(retirado, principal)
+
+    def test_mantenimiento_tiene_una_pestana_por_tabla(self) -> None:
+        fuente = (RAIZ / "app/ui/secretaria/mantenimiento.py").read_text(encoding="utf-8")
+        for titulo in ("Estudiante", "Padre / Apoderado", "Contacto de emergencia",
+                       "Institución educativa", "Constancia de logros", "Logro", "Matrícula",
+                       "Tiene padres", "Hermandad", "Necesidades educativas especiales",
+                       "Hermanos en la I.E.", "Secretaria"):
+            with self.subTest(titulo=titulo):
+                self.assertIn(f'"{titulo}"', fuente)
+
+    def test_realizar_matricula_tiene_los_cinco_pasos(self) -> None:
+        fuente = (RAIZ / "app/ui/secretaria/realizar_matricula.py").read_text(encoding="utf-8")
+        for paso in ("1. Documentos", "2. Datos", "3. Verificación", "4. Guardar datos",
+                     "5. Matrícula", "Abrir página del MINEDU", "Copiar código virtual",
+                     "Verifiqué el código virtual en el MINEDU", "Registrar matrícula"):
+            with self.subTest(paso=paso):
+                self.assertIn(paso, fuente)
 
 
 if __name__ == "__main__":

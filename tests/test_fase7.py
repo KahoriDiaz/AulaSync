@@ -26,10 +26,6 @@ class TestEstructuraEntrega(unittest.TestCase):
             "empaquetar.ps1",
             "LEEME.txt",
             "config.ini.example",
-            "documentos/MANUAL_USUARIO.md",
-            "data/solicitudes/pendientes/.gitkeep",
-            "data/solicitudes/aprobadas/.gitkeep",
-            "data/solicitudes/rechazadas/.gitkeep",
         ):
             with self.subTest(relativo=relativo):
                 self.assertTrue((RAIZ / relativo).is_file(), relativo)
@@ -55,9 +51,6 @@ class TestBuild(unittest.TestCase):
             "--hidden-import mysql.connector.locales.eng",
             'if exist "tesseract\\tessdata\\spa.traineddata"',
             'copy /y "config.ini.example"',
-            "data\\solicitudes",
-            "data\\perfiles",
-            "datos_demo\\solicitudes",
         ):
             with self.subTest(fragmento=fragmento):
                 self.assertIn(fragmento, contenido)
@@ -69,7 +62,7 @@ class TestBuild(unittest.TestCase):
             "AulaSync",
             "codigo_fuente",
             "script_bd",
-            "documentos",
+            "AulaSync.lnk",
             "LEEME.txt",
             "config.ini",
             "Compress-Archive",
@@ -84,7 +77,6 @@ class TestRutasEmpaquetadas(unittest.TestCase):
         self.assertEqual(config_mod.USER_DIR, RAIZ)
         self.assertEqual(config_mod.RECURSOS_DIR, RAIZ)
         self.assertEqual(config_mod.CONFIG_FILE, RAIZ / "config.ini")
-        self.assertEqual(config_mod.SOLICITUDES_DIR, RAIZ / "data" / "solicitudes")
         self.assertTrue(config_mod.CONFIG_FILE.name.endswith("config.ini"))
         self.assertEqual(len(setup_bd.SCRIPTS), 6)
         for relativo in setup_bd.SCRIPTS:
@@ -132,13 +124,12 @@ class TestLEEME(unittest.TestCase):
             "AulaSync.exe",
             "asistente de conexión",
             "secretaria123",
-            "padre123",
+            "87733221",
             "Windows Defender",
             "config.ini",
             "Entrega5_GrupoXX.zip",
             "codigo_fuente/",
             "script_bd/",
-            "documentos/",
         ):
             with self.subTest(fragmento=fragmento):
                 self.assertIn(fragmento, contenido)
